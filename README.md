@@ -1,1 +1,1 @@
-# DiscordBot
+# JoeBot
