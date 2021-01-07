@@ -4,6 +4,7 @@ import discord
 import os
 import re
 import random
+import datetime
 
 try:
     with open("token.txt") as tokenFile:
@@ -41,6 +42,9 @@ async def on_message(message):
         return
 
 class botMentioned:
+    from btec import btec, unit
+    from stuff import good, git
+
     async def __new__(self, message):
         command = message.content.strip()
         while "__" in command: command.replace("__", "")
@@ -50,9 +54,14 @@ class botMentioned:
         try:
             commandattr = getattr(self, command[1].lower())
             await commandattr(message, command)
-            return
-        except:
+        except IndexError:
             await self.__command_not_found__(message, command)
+        except KeyError:
+            await self.__command_not_found__(message, command)
+        except AttributeError:
+            await self.__command_not_found__(message, command)
+        except Exception as e:
+            await message.channel.send("something went wrong:\n"+str(e))
 
     class help:
         helpMessageShort = "short help"
@@ -71,13 +80,21 @@ class botMentioned:
 
     class __command_not_found__:
         noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?"]
-        commandNotFound = ["{name}: {command}: command not found", "what do you mean {command}"]
+        commandNotFound = ["{name}: {command[1]}: command not found", "what do you mean {message}"]
         async def __new__(self, message, command):
             if len(command) < 2:
                 await message.channel.send(random.choice(self.noCommandSpecified))
             else:
                 await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified)
-                    .format(name = message.channel.guild.me.display_name, command = command[1]))
+                    .format(name = message.channel.guild.me.display_name, command = command, message = ' '.join(command[1:])))
 
+    def __terminate_threads__():
+        for commandClass in dir(botMentioned):
+            if "__" not in commandClass:
+                try:
+                    if getattr(botMentioned, commandClass).terminate != None:
+                        getattr(botMentioned, commandClass).terminate = True
+                except: pass
 
 bot.run(token)
+botMentioned.__terminate_threads__()
