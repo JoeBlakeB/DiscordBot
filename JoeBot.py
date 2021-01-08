@@ -23,9 +23,13 @@ bot = discord.Client()
 @bot.event
 async def on_ready():
     print('Logged in as {0.user}'.format(bot))
+    await bot.change_presence(activity=discord.Game(name="@JoeBot unit #"))
 
 @bot.event
 async def on_message(message):
+    if message.author.name == "MEE6" and "365154655313068032" in message.content:
+        await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
+
     if message.author == bot.user or message.author.bot:
         return
 
@@ -33,13 +37,23 @@ async def on_message(message):
         await message.add_reaction(message.content[1:-1])
         return
 
+    if "kev" in message.content.lower():
+        emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
+        await message.add_reaction(emoji)
+        return
+
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
         return
 
-    if message.content.startswith("<@!"+str(bot.user.id)+">"):
+    if (message.content.startswith("<@!"+str(bot.user.id)+">") or
+            message.content.startswith("<@"+str(bot.user.id)+">")):
         await botMentioned(message)
         return
+
+    elif ("<@!"+str(bot.user.id)+">" in message.content or
+            "<@"+str(bot.user.id)+">" in message.content):
+        await botMentioned.__command_not_found__(message, [])
 
 class botMentioned:
     from btec import btec, unit
@@ -80,13 +94,13 @@ class botMentioned:
 
     class __command_not_found__:
         noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?"]
-        commandNotFound = ["{name}: {command[1]}: command not found", "what do you mean {message}"]
+        commandNotFound = ["what do you mean {message}"]
         async def __new__(self, message, command):
             if len(command) < 2:
                 await message.channel.send(random.choice(self.noCommandSpecified))
             else:
                 await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified)
-                    .format(name = message.channel.guild.me.display_name, command = command, message = ' '.join(command[1:])))
+                    .format(message = ' '.join(command[1:])))
 
     def __terminate_threads__():
         for commandClass in dir(botMentioned):
