@@ -22,7 +22,7 @@ bot = discord.Client()
 
 @bot.event
 async def on_ready():
-    print('Logged in as {0.user}'.format(bot))
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
     await bot.change_presence(activity=discord.Game(name="@JoeBot unit #"))
 
 @bot.event
@@ -56,6 +56,7 @@ async def on_message(message):
         await botMentioned.__command_not_found__(message, [])
 
 class botMentioned:
+    from help import help
     from btec import btec, unit
     from stuff import good, git
 
@@ -67,7 +68,7 @@ class botMentioned:
 
         try:
             commandattr = getattr(self, command[1].lower())
-            await commandattr(message, command)
+            await commandattr(message, command, self)
         except IndexError:
             await self.__command_not_found__(message, command)
         except KeyError:
@@ -76,21 +77,6 @@ class botMentioned:
             await self.__command_not_found__(message, command)
         except Exception as e:
             await message.channel.send("something went wrong:\n"+str(e))
-
-    class help:
-        helpMessageShort = "short help"
-        helpMessageLong  = "LONG HELP"
-        commandClasses = ""
-        async def __new__(self, message, command):
-            if self.commandClasses == "":
-                for commandClass in dir(botMentioned):
-                    if "__" not in commandClass:
-                        try:
-                            if getattr(botMentioned, commandClass).helpMessageShort != None:
-                                self.commandClasses += commandClass + ", "
-                        except: pass
-                self.commandClasses = self.commandClasses[:-2]
-            await message.channel.send("Available commands: " + self.commandClasses)
 
     class __command_not_found__:
         noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?"]
@@ -102,6 +88,9 @@ class botMentioned:
                 await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified)
                     .format(message = ' '.join(command[1:])))
 
+    def __embedColor__():
+        return 0x000000
+
     def __terminate_threads__():
         for commandClass in dir(botMentioned):
             if "__" not in commandClass:
@@ -110,5 +99,5 @@ class botMentioned:
                         getattr(botMentioned, commandClass).terminate = True
                 except: pass
 
-bot.run(token)
+bot.run(token, reconnect=True)
 botMentioned.__terminate_threads__()
