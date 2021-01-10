@@ -3,14 +3,14 @@
 import random
 
 class good:
-    async def __new__(self, message, command):
+    async def __new__(self, message, command, parentClass):
         if command[2].lower() == "bot":
             await message.channel.send(random.choice([":3", "uwu", "UωU"]))
         else:
             raise Exception
 
 class git:
-    async def __new__(self, message, command):
+    async def __new__(self, message, command, parentClass):
         if command[2].lower() == "gud":
             await message.channel.send("git: 'gud' is not a git command. See 'git help'.")
         elif command[2].lower()[-4:] == "help":

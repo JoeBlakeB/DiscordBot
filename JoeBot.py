@@ -23,7 +23,7 @@ bot = discord.Client()
 @bot.event
 async def on_ready():
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
-    await bot.change_presence(activity=discord.Game(name="@JoeBot unit #"))
+    await bot.change_presence(activity=discord.Game(name="@JoeBot help"))
 
 @bot.event
 async def on_message(message):
@@ -57,7 +57,7 @@ async def on_message(message):
 
 class botMentioned:
     from help import help
-    from btec import btec, unit
+    from btec import unit
     from stuff import good, git
 
     async def __new__(self, message):
@@ -89,7 +89,7 @@ class botMentioned:
                     .format(message = ' '.join(command[1:])))
 
     def __embedColor__():
-        return 0x000000
+        return random.choice([0xFF0000, 0x00FF00, 0x0000FF])
 
     def __terminate_threads__():
         for commandClass in dir(botMentioned):
