@@ -6,6 +6,7 @@ import re
 import random
 import datetime
 import threading
+import asyncio
 
 try:
     with open("token.txt") as tokenFile:
@@ -24,7 +25,26 @@ bot = discord.Client()
 @bot.event
 async def on_ready():
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
-    await bot.change_presence(activity=discord.Game(name="@JoeBot help"))
+    if not botPresenceRunning:
+        asyncio.create_task(botPresence())
+
+botPresenceRunning = False
+async def botPresence():
+    songs = ["C418 - Dog", "C418 - Cat", "C418 - Blocks", "C418 - Strad", "C418 - Wait",
+        "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math"]
+    botPresenceRunning = True
+    while True:
+        try:
+            now = datetime.datetime.now()
+            timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
+            if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
+                await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
+            else:
+                await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
+            await asyncio.sleep(random.randint(200, 300))
+        except:
+            botPresenceRunning = False
+            return
 
 @bot.event
 async def on_message(message):
@@ -99,6 +119,8 @@ def startThreads():
     for thread in threads:
         threads[thread].start()
 
-threads = {"unitSetup": threading.Thread(target = botMentioned.unit.setup, args = (botMentioned.unit,))}
+threads = {"unitSetup": threading.Thread(target=botMentioned.unit.setup, args=(botMentioned.unit,))}
 startThreads()
 bot.run(token, reconnect=True)
+
+asyncio.get_event_loop().close()
