@@ -5,6 +5,7 @@ import os
 import re
 import random
 import datetime
+import threading
 
 try:
     with open("token.txt") as tokenFile:
@@ -33,32 +34,31 @@ async def on_message(message):
     if message.author == bot.user or message.author.bot:
         return
 
-    if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
+    elif re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
         await message.add_reaction(message.content[1:-1])
-        return
 
-    if "kev" in message.content.lower():
+    elif "kev" in message.content.lower().split():
         emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
         await message.add_reaction(emoji)
-        return
 
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
-        return
 
-    if (message.content.startswith("<@!"+str(bot.user.id)+">") or
+    elif (message.content.startswith("<@!"+str(bot.user.id)+">") or
             message.content.startswith("<@"+str(bot.user.id)+">")):
         await botMentioned(message)
-        return
 
     elif ("<@!"+str(bot.user.id)+">" in message.content or
             "<@"+str(bot.user.id)+">" in message.content):
         await botMentioned.__command_not_found__(message, [])
 
+    elif "69" in message.content.split():
+        await message.channel.send("Nice.")
+
 class botMentioned:
     from help import help
     from btec import unit
-    from stuff import good, git
+    from stuff import good
 
     async def __new__(self, message):
         command = message.content.strip()
@@ -88,16 +88,17 @@ class botMentioned:
                 await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified)
                     .format(message = ' '.join(command[1:])))
 
+    async def __long_send__(message, embed):
+        await message.channel.send(embed=embed)
+        ## TODO: handle description being above 2048 chars
+
     def __embedColor__():
         return random.choice([0xFF0000, 0x00FF00, 0x0000FF])
 
-    def __terminate_threads__():
-        for commandClass in dir(botMentioned):
-            if "__" not in commandClass:
-                try:
-                    if getattr(botMentioned, commandClass).terminate != None:
-                        getattr(botMentioned, commandClass).terminate = True
-                except: pass
+def startThreads():
+    for thread in threads:
+        threads[thread].start()
 
+threads = {"unitSetup": threading.Thread(target = botMentioned.unit.setup, args = (botMentioned.unit,))}
+startThreads()
 bot.run(token, reconnect=True)
-botMentioned.__terminate_threads__()
