@@ -2,6 +2,7 @@
 
 import discord
 import os
+import sys
 import re
 import random
 import datetime
@@ -20,18 +21,16 @@ except:
         print("Token not found in token.txt and not in args")
         exit(1)
 
-bot = discord.Client()
 
-@bot.event
-async def on_ready():
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
-    if not botPresenceRunning:
-        asyncio.create_task(botPresence())
+intents = discord.Intents.default()
+intents.members = True
+bot = discord.Client(intents=intents)
+
 
 botPresenceRunning = False
 async def botPresence():
-    songs = ["C418 - Dog", "C418 - Cat", "C418 - Blocks", "C418 - Strad", "C418 - Wait",
-        "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math"]
+    songs = ["C418 - Dog", "C418 - Cat", "C418 - Blocks", "C418 - Strad", "C418 - Wait", "C418 - Living Mice",
+             "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math", "C418 - Subwoofer Lullaby"]
     botPresenceRunning = True
     while True:
         try:
@@ -46,18 +45,50 @@ async def botPresence():
             botPresenceRunning = False
             return
 
+joinMessages = ["I should probably warn you that {name} is a registered sex offender."]
+leaveMessages = ["{name} leaving is kinda poggers."]
+
+def userJoinLeave(member, messageList):
+    channel = discord.utils.get(member.guild.text_channels, name="welcome")
+    if channel == None:
+        channel = discord.utils.get(member.guild.text_channels, name="general")
+    if channel == None:
+        return None, None
+    else:
+        return channel, random.choice(messageList).format(name=member.display_name)
+
+@bot.event
+async def on_member_join(member):
+    channel, message = userJoinLeave(member, joinMessages)
+    if channel != None:
+        await channel.send(message)
+
+@bot.event
+async def on_member_remove(member):
+    channel, message = userJoinLeave(member, leaveMessages)
+    if channel != None:
+        await channel.send(message)
+
+@bot.event
+async def on_ready():
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
+    if not botPresenceRunning:
+        asyncio.create_task(botPresence())
+
 @bot.event
 async def on_message(message):
-    if message.author.name == "MEE6" and "365154655313068032" in message.content:
-        await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
+    if message.author.name == "MEE6":
+        if "365154655313068032" in message.content and "you just wasted more of your life typing" in message.content:
+            await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
+        return
 
     if message.author == bot.user or message.author.bot:
         return
 
-    elif re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
+    if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
         await message.add_reaction(message.content[1:-1])
 
-    elif "kev" in message.content.lower().split():
+    elif "kev" in message.content.lower():
         emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
         await message.add_reaction(emoji)
 
@@ -118,6 +149,8 @@ class botMentioned:
 def startThreads():
     for thread in threads:
         threads[thread].start()
+
+print("Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__)
 
 threads = {"unitSetup": threading.Thread(target=botMentioned.unit.setup, args=(botMentioned.unit,))}
 startThreads()
