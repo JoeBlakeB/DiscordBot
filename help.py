@@ -4,8 +4,8 @@ class help:
     help = {"list": True, "ListPriority": 1, "Title":"Help",
         "ShortHelp": "Get help for commands. *@{displayName} help <command>* for detailed info.",
         "LongHelp": "Gives help on using {displayName}.\n"+
-        "*@{displayName} help <number>* to view command list page.\n"+
-        "*@{displayName} help <command>* for detailed info on a command."}
+        "**@{displayName} help <number>** to view command list page.\n"+
+        "**@{displayName} help <command>** for detailed info on a command."}
     commandList = []
     commandsPerPage = 6
     async def __new__(self, message, command, parentClass):
@@ -37,17 +37,22 @@ class help:
         except:
             helpPage = 1
 
+        try:
+            display_name = message.channel.guild.me.display_name
+        except AttributeError as e:
+            display_name = "JoeBot"
+
         embed = discord.Embed()
         embed.color = parentClass.__embedColor__()
         # Give help for a command
         if helpForCommand["LongHelp"]:
-            embed.title = message.channel.guild.me.display_name + " " + helpForCommand["Title"]
+            embed.title = display_name + " " + helpForCommand["Title"]
             embed.description = (helpForCommand["LongHelp"]
-                .format(displayName = message.channel.guild.me.display_name))
+                .format(displayName = display_name))
 
         # Give page of available commands
         else:
-            embed.title = message.channel.guild.me.display_name + " Help"
+            embed.title = display_name + " Help"
             embed.description = ""
             listOffset = (helpPage-1)*self.commandsPerPage
 
@@ -55,7 +60,7 @@ class help:
                 command = getattr(parentClass, command).help
                 embed.description += ("\n**" + command["Title"] +
                     "**\n> " + command["ShortHelp"]
-                    .format(displayName = message.channel.guild.me.display_name))
+                    .format(displayName = display_name))
             embed.description = embed.description[1:]
             # Tell user about multiple pages
             if (len(self.commandList)/self.commandsPerPage)+1 > 2:
@@ -63,6 +68,6 @@ class help:
                 str(int(((len(self.commandList)-1)/self.commandsPerPage)+1)))
                 embed.title += (" (page " + pageNumber +")")
                 embed.description += "\nPage "+ pageNumber +(" - @{displayName} help #"
-                    .format(displayName = message.channel.guild.me.display_name))
+                    .format(displayName = display_name))
 
         await message.channel.send(embed=embed)

@@ -21,11 +21,9 @@ except:
         print("Token not found in token.txt and not in args")
         exit(1)
 
-
 intents = discord.Intents.default()
 intents.members = True
 bot = discord.Client(intents=intents)
-
 
 botPresenceRunning = False
 async def botPresence():
@@ -109,7 +107,8 @@ async def on_message(message):
 class botMentioned:
     from help import help
     from btec import unit
-    from stuff import good
+    from stuff import good, bad
+    from stats import stats
 
     async def __new__(self, message):
         command = message.content.strip()
@@ -145,6 +144,10 @@ class botMentioned:
 
     def __embedColor__():
         return random.choice([0xFF0000, 0x00FF00, 0x0000FF])
+
+    def __bot__():
+        global bot
+        return bot
 
 def startThreads():
     for thread in threads:
