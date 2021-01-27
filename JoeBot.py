@@ -31,6 +31,7 @@ async def botPresence():
              "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math", "C418 - Subwoofer Lullaby"]
     botPresenceRunning = True
     while True:
+        botMentioned.stats.updateUptime(botMentioned.stats)
         try:
             now = datetime.datetime.now()
             timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
@@ -70,8 +71,20 @@ async def on_member_remove(member):
 @bot.event
 async def on_ready():
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
+    botMentioned.stats.uptime["Connected"] = True
+    botMentioned.stats.updateUptime(botMentioned.stats)
     if not botPresenceRunning:
         asyncio.create_task(botPresence())
+
+@bot.event
+async def on_connect():
+    botMentioned.stats.uptime["Connected"] = True
+    botMentioned.stats.updateUptime(botMentioned.stats)
+
+@bot.event
+async def on_disconnect():
+    botMentioned.stats.uptime["Connected"] = False
+    botMentioned.stats.updateUptime(botMentioned.stats)
 
 @bot.event
 async def on_message(message):
@@ -93,13 +106,8 @@ async def on_message(message):
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
 
-    elif (message.content.startswith("<@!"+str(bot.user.id)+">") or
-            message.content.startswith("<@"+str(bot.user.id)+">")):
+    elif re.match(r"<@[!]{0,1}"+str(bot.user.id)+">", message.content.lower()):
         await botMentioned(message)
-
-    elif ("<@!"+str(bot.user.id)+">" in message.content or
-            "<@"+str(bot.user.id)+">" in message.content):
-        await botMentioned.__command_not_found__(message, [])
 
     elif "69" in message.content.split():
         await message.channel.send("Nice.")
@@ -107,7 +115,7 @@ async def on_message(message):
 class botMentioned:
     from help import help
     from btec import unit
-    from stuff import good, bad
+    from stuff import good, bad, hi, hey, hello, say, gun, kill
     from stats import stats
 
     async def __new__(self, message):
