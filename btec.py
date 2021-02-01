@@ -7,12 +7,12 @@ class unit:
         "ShortHelp": "View unit specification.",
         "LongHelp": "View unit specification.\n"+
         "**@{displayName} Unit <number>** Get a link to the unit specification.\n"+
+        "**@{displayName} Unit <name>** View unit by name.\n"+
         "\nWork in progress:"+
         "\n**@{displayName} Unit <number>** View unit summary."+
         "\n**@{displayName} Unit <number> Learning Outcome <number>** View specific learning outcome."+
         "\n**@{displayName} Unit <number> Assignment <number>** View specific assignment."+
         "\n**@{displayName} Unit <number> <grade>** View specific grading criteria. e.g. P#, M#, D#"+
-        "\n**@{displayName} Unit <name>** View unit by name."+
         "\n**@{displayName} Unit Search <name>** Search for units."}
     units = {}
     async def __new__(self, message, command, parentClass):
@@ -89,8 +89,13 @@ class unit:
         await parentClass.__long_send__(message, embed=embed)
 
     def getUnitByName(self, command):
-        raise NotImplementedError("NotImplementedError: getUnitByName is still work in progress")
-        # return unitNumber, subCommand
+        unitNames = list(self.units)
+        for wordCount in range(1, len(command)+1):
+            getUnitName = " ".join(command[:wordCount])
+            for unitName in unitNames:
+                if getUnitName.lower().replace("-", " ") == unitName.lower():
+                    return unitNames.index(unitName)+1, command[wordCount:]
+        return 0, []
 
     def search(self, message, command, parentClass):
         raise NotImplementedError("NotImplementedError: search still work in progress")
