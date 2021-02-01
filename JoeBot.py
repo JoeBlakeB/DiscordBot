@@ -31,7 +31,6 @@ async def botPresence():
              "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math", "C418 - Subwoofer Lullaby"]
     botPresenceRunning = True
     while True:
-        botMentioned.stats.updateUptime(botMentioned.stats)
         try:
             now = datetime.datetime.now()
             timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
@@ -71,20 +70,8 @@ async def on_member_remove(member):
 @bot.event
 async def on_ready():
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
-    botMentioned.stats.uptime["Connected"] = True
-    botMentioned.stats.updateUptime(botMentioned.stats)
     if not botPresenceRunning:
         asyncio.create_task(botPresence())
-
-@bot.event
-async def on_connect():
-    botMentioned.stats.uptime["Connected"] = True
-    botMentioned.stats.updateUptime(botMentioned.stats)
-
-@bot.event
-async def on_disconnect():
-    botMentioned.stats.uptime["Connected"] = False
-    botMentioned.stats.updateUptime(botMentioned.stats)
 
 @bot.event
 async def on_message(message):
@@ -106,21 +93,27 @@ async def on_message(message):
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
 
-    elif re.match(r"<@[!]{0,1}"+str(bot.user.id)+">", message.content.lower()):
+    elif re.match(r"<@[!]{0,1}"+str(bot.user.id)+">", message.content.lower()) or message.content.split(" ")[0].lower() == "joebot":
         await botMentioned(message)
 
-    elif "69" in message.content.split():
-        await message.channel.send("Nice.")
+    else:
+        for i in message.content.split():
+            if i in ["69", "420"]:
+                await message.channel.send("Nice.")
+                break
+            elif i.lower() in ["pogchamp", "poggers", "pogger", "pogging", "pog"]:
+                await message.channel.send(random.choice(["Pog", "Poggers", "Pogger", "PogChamp", "Pogging", "This is poggers", "This is very poggers"]))
+                break
 
 class botMentioned:
     from help import help
     from btec import unit
-    from stuff import good, bad, hi, hey, hello, say, gun, kill
+    from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
     from stats import stats
 
     async def __new__(self, message):
         command = message.content.strip()
-        while "__" in command: command.replace("__", "")
+        while "__" in command: command = command.replace("__", "")
         while "  " in command: command = command.replace("  ", " ")
         command = command.split()
 

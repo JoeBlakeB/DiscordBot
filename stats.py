@@ -75,9 +75,9 @@ class stats:
         embed.description += "\nOS: " + platform.system() + " " + platform.release()
         embed.description += "\nPing: " + str(int(bot.latency*1000)) + "ms"
 
-        self.updateUptime(self)
-        embed.description += "\nTotal Uptime: " + self.convertToDays(self.uptime["Total Uptime"] + self.uptime["Connection Uptime"])
-        embed.description += "\nConnection Uptime: " + self.convertToDays(self.uptime["Connection Uptime"])
-        embed.description += "\nUptime Percentage: " + str(int(round(self.uptime["Uptime Percent"]*100, 0))) + "%"
+        #self.updateUptime(self)
+        #embed.description += "\nTotal Uptime: " + self.convertToDays(self.uptime["Total Uptime"] + self.uptime["Connection Uptime"])
+        #embed.description += "\nConnection Uptime: " + self.convertToDays(self.uptime["Connection Uptime"])
+        #embed.description += "\nUptime Percentage: " + str(int(round(self.uptime["Uptime Percent"]*100, 0))) + "%"
 
         await message.channel.send(embed=embed)

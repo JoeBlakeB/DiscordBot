@@ -3,28 +3,27 @@
 import discord
 
 class unit:
-    help = {"list": True, "ListPriority": 2, "Title":"Unit",
+    help = {"list": True, "ListPriority": 3, "Title":"Unit",
         "ShortHelp": "View unit specification.",
         "LongHelp": "View unit specification.\n"+
-        "*@{displayName} Unit <number>* Get a link to the unit specification.\n"+
-        "Work in progress:"+
-        "\n*@{displayName} Unit <number>* View unit summary."+
-        "\n*@{displayName} Unit <number> Learning Outcome <number>* View specific learning outcome."+
-        "\n*@{displayName} Unit <number> Assignment <number>* View specific assignment."+
-        "\n*@{displayName} Unit <number> <grade>* View specific grading criteria. e.g. P#, M#, D#"+
-        "\n*@{displayName} Unit <name>* View unit by name."+
-        "\n*@{displayName} Unit Search <name>* Search for units."}
+        "**@{displayName} Unit <number>** Get a link to the unit specification.\n"+
+        "\nWork in progress:"+
+        "\n**@{displayName} Unit <number>** View unit summary."+
+        "\n**@{displayName} Unit <number> Learning Outcome <number>** View specific learning outcome."+
+        "\n**@{displayName} Unit <number> Assignment <number>** View specific assignment."+
+        "\n**@{displayName} Unit <number> <grade>** View specific grading criteria. e.g. P#, M#, D#"+
+        "\n**@{displayName} Unit <name>** View unit by name."+
+        "\n**@{displayName} Unit Search <name>** Search for units."}
     units = {}
     async def __new__(self, message, command, parentClass):
         if self.units == Exception:
             await message.channel.send("Cannot get unit specifications at the moment... please try later.")
             return
 
-        try:
+        if len(command) >= 3:
             if command[2].lower() == "search":
                 self.search(self, message, command, parentClass)
                 return
-        except: pass
 
         # Try to get unit number
         try:
