@@ -32,12 +32,16 @@ async def botPresence():
     botPresenceRunning = True
     while True:
         try:
-            now = datetime.datetime.now()
-            timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
-            if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
-                await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
+            dogeValue = round(botMentioned.crypto.getValue("doge") * 100, 2)
+            if dogeValue == 0:
+                now = datetime.datetime.now()
+                timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
+                if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
+                    await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
+                else:
+                    await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
             else:
-                await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
+                await bot.change_presence(activity=discord.Activity(name="doge @ "+str(dogeValue)+"p 🚀🌑", type=3))
             await asyncio.sleep(random.randint(200, 300))
         except:
             botPresenceRunning = False
@@ -110,6 +114,8 @@ class botMentioned:
     from btec import unit
     from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
     from stats import stats
+    from crypto import crypto
+    doge, dogecoin, btc, bitcoin = crypto, crypto, crypto, crypto
 
     async def __new__(self, message):
         command = message.content.strip()
