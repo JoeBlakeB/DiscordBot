@@ -51,10 +51,10 @@ class crypto:
         embed.description += "**\n\n" + cryptoProfile["data"]["tagline"]
 
         embed.description += "\n\nAll Time High: £{:,.2f} at ".format(float(cryptoMetrics["data"]["all_time_high"]["price"]) * float(exchangeRate["rates"]["GBP"])) + cryptoMetrics["data"]["all_time_high"]["at"][:10]
-        embed.description += "\nVolume (24 hours): " + str(cryptoMetrics["data"]["market_data"]["volume_last_24_hours"])
-        embed.description += "\nReal Bolume (24 hours): " + str(cryptoMetrics["data"]["market_data"]["real_volume_last_24_hours"])
-        embed.description += "\nPercent Change (1 hour): " + str(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_1_hour"])
-        embed.description += "\nPercent Change (24 hours): " + str(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_24_hours"])
+        embed.description += "\nVolume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["volume_last_24_hours"] * float(exchangeRate["rates"]["GBP"]))
+        embed.description += "\nReal Volume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["real_volume_last_24_hours"] * float(exchangeRate["rates"]["GBP"]))
+        embed.description += "\nPercent Change (1 hour): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_1_hour"],4))
+        embed.description += "\nPercent Change (24 hours): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_24_hours"],4))
         embed.description += "\nMarket Cap: £{:,.2f}".format(float(cryptoMetrics["data"]["marketcap"]["current_marketcap_usd"]) * float(exchangeRate["rates"]["GBP"]))
 
         embed.description += "\n\nSupply: " + str(int(cryptoMetrics["data"]["supply"]["circulating"]))
