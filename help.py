@@ -7,7 +7,7 @@ class help:
         "**@{displayName} help <number>** to view command list page.\n"+
         "**@{displayName} help <command>** for detailed info on a command."}
     commandList = []
-    commandsPerPage = 6
+    commandsPerPage = 8
     async def __new__(self, message, command, parentClass):
         # List of commands
         if self.commandList == []:
@@ -32,9 +32,9 @@ class help:
             helpForCommand = {"LongHelp":False}
         try:
             helpPage = int(command[2])
-            if helpPage <= 0 or helpPage >= (len(self.commandList)/commandsPerPage)+1:
+            if helpPage <= 0 or helpPage >= (len(self.commandList)/self.commandsPerPage)+1:
                 helpPage = 1
-        except:
+        except Exception as e:
             helpPage = 1
 
         try:

@@ -38,9 +38,8 @@ class unit:
             unitNumber, subCommand = self.getUnitByName(self, command[2:])
             # if unitNumber is still 0, tell user cannot find unit
             if unitNumber == 0:
-                await message.channel.send("Could not find that Unit. "+
-                    "Check for typos or specify Unit number instead."+
-                    " This is currently work in progress so expect some bugs.")
+                await message.channel.send("Could not find that unit. "+
+                    "Check for typos or specify unit number instead.")
                 return
         else:
             subCommand = command[3:]

@@ -97,7 +97,7 @@ async def on_message(message):
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
 
-    elif re.match(r"<@[!]{0,1}"+str(bot.user.id)+">", message.content.lower()) or message.content.split(" ")[0].lower() == "joebot":
+    elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or message.content.split(" ")[0].lower() == "joebot":
         await botMentioned(message)
 
     else:
@@ -115,7 +115,6 @@ class botMentioned:
     from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
     from stats import stats
     from crypto import crypto
-    doge, dogecoin, btc, bitcoin = crypto, crypto, crypto, crypto
 
     async def __new__(self, message):
         command = message.content.strip()
