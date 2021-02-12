@@ -8,10 +8,10 @@ import random
 import datetime
 import threading
 import asyncio
+import keys
 
 try:
-    with open("token.txt") as tokenFile:
-        token = tokenFile.read().strip()
+    token = keys.read("Discord")
 except:
     token = None
     import sys
@@ -50,26 +50,23 @@ async def botPresence():
 joinMessages = ["I should probably warn you that {name} is a registered sex offender."]
 leaveMessages = ["{name} leaving is kinda poggers."]
 
-def userJoinLeave(member, messageList):
-    channel = discord.utils.get(member.guild.text_channels, name="welcome")
-    if channel == None:
-        channel = discord.utils.get(member.guild.text_channels, name="general")
-    if channel == None:
-        return None, None
-    else:
-        return channel, random.choice(messageList).format(name=member.display_name)
+async def userJoinLeave(member, messageList):
+    for channelName in ["welcome", "general"]:
+        channel = discord.utils.get(member.guild.text_channels, name=channelName)
+        if channel != None:
+            try:
+                await channel.send(random.choice(messageList).format(name=member.display_name))
+                return
+            except: pass
 
 @bot.event
 async def on_member_join(member):
-    channel, message = userJoinLeave(member, joinMessages)
-    if channel != None:
-        await channel.send(message)
+    await userJoinLeave(member, joinMessages)
 
 @bot.event
 async def on_member_remove(member):
-    channel, message = userJoinLeave(member, leaveMessages)
-    if channel != None:
-        await channel.send(message)
+    await userJoinLeave(member, leaveMessages)
+
 
 @bot.event
 async def on_ready():
@@ -87,6 +84,9 @@ async def on_message(message):
     if message.author == bot.user or message.author.bot:
         return
 
+    try: botNames = ["joebot", message.channel.guild.me.display_name.lower()]
+    except: botNames = "joebot"
+
     if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
         await message.add_reaction(message.content[1:-1])
 
@@ -97,7 +97,7 @@ async def on_message(message):
     if message.content.lower() == "git gud":
         await message.channel.send("git: 'gud' is not a git command.")
 
-    elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or message.content.split(" ")[0].lower() == "joebot":
+    elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
         await botMentioned(message)
 
     else:
@@ -115,12 +115,16 @@ class botMentioned:
     from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
     from stats import stats
     from crypto import crypto
+    from reddit import reddit, dev
 
     async def __new__(self, message):
         command = message.content.strip()
         while "__" in command: command = command.replace("__", "")
         while "  " in command: command = command.replace("  ", " ")
         command = command.split()
+
+        if command[1][:2] == "r/":
+            command[1:2] = ["reddit", command[1]]
 
         try:
             commandattr = getattr(self, command[1].lower())
