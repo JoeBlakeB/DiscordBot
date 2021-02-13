@@ -8,6 +8,7 @@ import random
 import datetime
 import threading
 import asyncio
+
 import keys
 
 try:
@@ -124,7 +125,7 @@ class botMentioned:
         command = command.split()
 
         if command[1][:2] == "r/":
-            command[1:2] = ["reddit", command[1]]
+            command[1:2] = ["reddit", command[1][2:]]
 
         try:
             commandattr = getattr(self, command[1].lower())

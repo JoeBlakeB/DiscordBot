@@ -3,18 +3,15 @@
 ## keys.txt
 ##  | Discord: <Discord token>
 
-# with open("token.txt") as tokenFile:
-#    token = tokenFile.read().strip()
-
 def read(*IDs):
     with open("keys.txt") as keysFile:
         keysRead = keysFile.read().strip()
     keys = {}
     for key in keysRead.split("\n"):
-        keys[key.split(": ")[0]] = key.split(": ")[1]
+        keys[key.split(": ")[0].lower()] = key.split(": ")[1]
     if len(IDs) == 1:
-        return keys[IDs[0]]
+        return keys[IDs[0].lower()]
     returnKeys = ()
     for ID in IDs:
-        returnKeys += (keys[ID],)
+        returnKeys += (keys[ID.lower()],)
     return returnKeys
