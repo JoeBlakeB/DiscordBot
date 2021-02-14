@@ -13,22 +13,12 @@ warnings.filterwarnings('ignore')
 
 class reddit:
     help = {"list": True, "ListPriority": 5, "Title":"Reddit",
-        "ShortHelp": "Get a post from a subreddit. **Currently work in progress.**",
+        "ShortHelp": "Get a post from a subreddit.",
         "LongHelp": "Get a post from a subreddit.\n"+
-        "\n✅ make something to store the store the keys so I dont accidentally upload the api keys to github\n"+
-        "✅ work out what the user wants the bot to do\n"+
-        "❌ get post from hot of subreddit\n"+
-        "❌ get post from top/new of subreddit\n"+
-        "❌ get random post\n"+
-        "❌ get certain post / most recent / top of all time\n"+
-        "✅ embed the content\n"+
-        "✅ post from reddit share link\n"+
-        "✅ video embed\n"+
-        "\nFuture commands:\n"+
         "**@{displayName} reddit** to get a post from the front page.\n"+
         "**@{displayName} reddit r/<subreddit>** or **@{displayName} r/<subreddit>** "+
         "to get a post from the front page of that subreddit.\n"+
-        "**@{displayName} reddit r/<subreddit> [top/new] [<number>/random]** to get a post from hot/new of a subreddit.\n"+
+        "**@{displayName} reddit r/<subreddit> [hot/top/new/rising] [random]** to get a post from hot/new of a subreddit.\n"+
         "**@{displayName} reddit <share link>** or **@{displayName} reddit post <id>** to share a post from reddit and embed it."}
 
     try:
@@ -40,7 +30,10 @@ class reddit:
         prawInstance = Exception
         prawException = str(e)
 
-    imageHosts = ["i.redd.it", "i.imgur.com"]
+    imageHosts = ["i.redd.it", "i.imgur.com", "media1.giphy.com"]
+    videoHosts = ["v.redd.it", "gfycat.com"]
+
+    recentSubmissions = []
 
     async def __new__(self, message, command, parentClass):
         if self.prawInstance == Exception:
@@ -48,21 +41,59 @@ class reddit:
             return
 
         isSubmission, submissionID = self.submissionID(self, command[2:])
+        # If given URL
         if isSubmission:
             try:
                 submission = await self.prawInstance.submission(id=submissionID)
                 await self.postSubmission(self, message, submission)
             except asyncprawcore.exceptions.NotFound as e:
                 await message.channel.send("I can't do that: " + str(e))
-        else:
+        else: # Post from subreddit
             subreddit, sort, index = self.generateArguments(command)
             if not (re.match("^[A-Za-z0-9_]*$", subreddit) and 2 < len(subreddit) <= 21):
                 await message.channel.send("That's not a valid subreddit.")
                 return
-            else:
-                await message.channel.send("Subreddit: " + subreddit + " Sort: " + sort + " Index: " + str(index))
+            try: # Get a post
+                subredditInstance = await self.prawInstance.subreddit(subreddit)
+                if index == "random":
+                    try:
+                        submission = await subredditInstance.random()
+                        submission.id
+                    except AttributeError:
+                        await message.channel.send("Could not get random post.")
+                        index = "first"
+                if index != "random":
+                    listingGeneratorArgs = {}
+                    if sort == "new":
+                        listingGenerator = subredditInstance.new
+                    elif sort == "top":
+                        listingGenerator = subredditInstance.top
+                        listingGeneratorArgs["time_filter"] = "all"
+                    elif sort == "rising":
+                        listingGenerator = subredditInstance.rising
+                    elif sort == "controversial":
+                        listingGenerator = subredditInstance.controversial
+                        listingGeneratorArgs["time_filter"] = "week"
+                    else:
+                        listingGenerator = subredditInstance.hot
 
-        await message.channel.send("See **joebot help reddit** to see progress on the reddit command.")
+                    async for submissionIteration in listingGenerator(**listingGeneratorArgs, limit=256):
+                        if not submissionIteration.id in self.recentSubmissions and not submissionIteration.stickied:
+                            submission = submissionIteration
+                            break
+
+                    if not submission:
+                        await message.channel.send("Could not get a post from that sub.")
+
+                if submission:
+                    self.recentSubmissions += [submission.id]
+                    await self.postSubmission(self, message, submission)
+                if len(self.recentSubmissions) >= 256:
+                    self.recentSubmissions = self.recentSubmissions[32:]
+            except asyncprawcore.exceptions.NotFound:
+                await message.channel.send("Could not find that subreddit.")
+            except asyncprawcore.exceptions.Forbidden as e:
+                await message.channel.send("I can't do that: " + str(e))
 
     def submissionID(self, command):
         if len(command) == 0:
@@ -98,15 +129,11 @@ class reddit:
             if len(command) == 5: options = command[3:5]
             else: options = command[3:4]
             for option in options:
-                if option in ["hot", "top", "new"]:
+                if option in ["hot", "top", "new", "rising", "controversial"]:
                     sort = option
                 elif option == "random":
                     index = option
-                else:
-                    try: index = int(option)
-                    except: pass
-        if index == None and sort == "hot": index = "random"
-        elif index == None: index = 1
+        if index == None: index = "first"
         return subreddit, sort, index
 
     async def postSubmission(self, message, submission):
@@ -135,31 +162,33 @@ class reddit:
                     sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=True)
                     embed.set_image(url="attachment://" + filename)
                 else:
-                    sendExtra["content"] = "Could not get image because it excedes the Discord 8mb limit"
+                    sendExtra["content"] = "Could not get the image because it excedes the Discord 8mb limit.\n" + submission.url
             else:
                 embed.set_image(url=submission.url)
-        if submission.domain == "v.redd.it":
+        if submission.domain in self.videoHosts:
             asyncio.sleep(2)
             postJson = requests.get(embed.url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"}).json()
             try:
-                videoFallbackUrl = postJson[0]["data"]["children"][0]["data"]["secure_media"]["reddit_video"]["fallback_url"]
+                try:
+                    videoFallbackUrl = postJson[0]["data"]["children"][0]["data"]["secure_media"]["reddit_video"]["fallback_url"]
+                except:
+                    videoFallbackUrl = postJson[0]["data"]["children"][0]["data"]["preview"]["reddit_video_preview"]["fallback_url"]
             except:
                 videoFallbackUrl = False
                 try:
                     sendExtra["content"] = "Could not get video because error " + str(postJson["error"]) + " " + str(postJson["message"])
-                except Exception as e:
-                    print(e)
+                except: pass
             if videoFallbackUrl:
                 bytesio = io.BytesIO(requests.get(videoFallbackUrl).content)
                 if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
-                    filename = videoFallbackUrl[19:].split(".")[0] + ".mp4"
+                    filename = videoFallbackUrl[9+len(submission.domain):].split(".")[0] + ".mp4"
                     sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
                     embed.set_image(url="attachment://" + filename)
                 else:
-                    sendExtra["content"] = "Could not get video because it excedes the Discord 8mb limit"
+                    sendExtra["content"] = "Could not get the video because it excedes the Discord 8mb limit.\n" + videoFallbackUrl
 
         # URL if the post has a link that isn't an image
-        if submission.url != embed.url and not submission.domain in self.imageHosts + ["v.redd.it"]:
+        if submission.url != embed.url and not submission.domain in self.imageHosts + self.videoHosts:
             embed.description += "\n\n" + submission.url
 
         # Post description
