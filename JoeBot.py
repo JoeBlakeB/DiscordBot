@@ -116,7 +116,7 @@ class botMentioned:
     from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
     from stats import stats
     from crypto import crypto
-    from reddit import reddit, dev
+    from reddit import reddit
 
     async def __new__(self, message):
         command = message.content.strip()
