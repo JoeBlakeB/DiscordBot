@@ -64,6 +64,7 @@ class reddit:
                         index = "first"
                 if index != "random":
                     listingGeneratorArgs = {}
+                    submission = False
                     if sort == "new":
                         listingGenerator = subredditInstance.new
                     elif sort == "top":
@@ -78,9 +79,10 @@ class reddit:
                         listingGenerator = subredditInstance.hot
 
                     async for submissionIteration in listingGenerator(**listingGeneratorArgs, limit=256):
-                        if not submissionIteration.id in self.recentSubmissions and not submissionIteration.stickied:
-                            submission = submissionIteration
-                            break
+                        if not submissionIteration.id in self.recentSubmissions:
+                            if not (submissionIteration.stickied and not ("stickied" in command or "pinned" in command)):
+                                submission = submissionIteration
+                                break
 
                     if not submission:
                         await message.channel.send("Could not get a post from that sub.")
@@ -140,7 +142,10 @@ class reddit:
         embed = discord.Embed()
         sendExtra = {}
         # Title stuff
-        embed.title = submission.title + "\nr/" + submission.subreddit.display_name + " - u/" + submission.author.name
+        try:
+            embed.title = submission.title + "\nr/" + submission.subreddit.display_name + " - u/" + submission.author.name
+        except AttributeError:
+            embed.title = submission.title + "\nr/" + submission.subreddit.display_name + " - [DELETED]"
         extras = []
         if submission.over_18: extras += ["NSFW"]
         if submission.spoiler: extras += ["SPOILER"]

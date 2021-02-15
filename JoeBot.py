@@ -99,6 +99,7 @@ async def on_message(message):
         await message.channel.send("git: 'gud' is not a git command.")
 
     elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
+        await message.channel.trigger_typing()
         await botMentioned(message)
 
     else:
@@ -124,17 +125,23 @@ class botMentioned:
         while "  " in command: command = command.replace("  ", " ")
         command = command.split()
 
-        if command[1][:2] == "r/":
-            command[1:2] = ["reddit", command[1][2:]]
+        if len(command) >= 2:
+            if command[1].startswith("r/"):
+                command[1:2] = ["reddit", command[1][2:]]
 
         try:
             commandattr = getattr(self, command[1].lower())
-            await commandattr(message, command, self)
         except IndexError:
             await self.__command_not_found__(message, command)
         except KeyError:
             await self.__command_not_found__(message, command)
-        except AttributeError:
+        except AttributeError as e:
+            await self.__command_not_found__(message, command)
+        except Exception as e:
+            await message.channel.send("something went wrong:\n"+str(e))
+        try:
+            await commandattr(message, command, self)
+        except IndexError:
             await self.__command_not_found__(message, command)
         except Exception as e:
             await message.channel.send("something went wrong:\n"+str(e))

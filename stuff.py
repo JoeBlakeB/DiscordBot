@@ -56,7 +56,9 @@ class pogchamp:
     async def __new__(self, message, command, parentClass):
         for i in range(random.randint(4,16)):
             await message.channel.send("PogChamp")
+            await message.channel.trigger_typing()
             await asyncio.sleep(2)
+        await message.channel.send("PogChamp")
 
 class porn:
     help = {"list": False, "Title":"Porn",
