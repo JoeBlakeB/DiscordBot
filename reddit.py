@@ -33,12 +33,15 @@ class reddit:
     imageHosts = ["i.redd.it", "i.imgur.com", "media1.giphy.com"]
     videoHosts = ["v.redd.it", "gfycat.com"]
 
-    recentSubmissions = []
+    recentSubmissions = {}
 
     async def __new__(self, message, command, parentClass):
         if self.prawInstance == Exception:
             await message.channel.send("Reddit is currently unavailable:\n"+self.prawException)
             return
+        if "feet" in message.content.lower() or "foot" in message.content.lower() or "spit" in message.content.lower():
+            await message.channel.send("```diff\n- I recommend you DON'T unspoiler this! - \n```")
+            await message.channel.trigger_typing()
 
         isSubmission, submissionID = self.submissionID(self, command[2:])
         # If given URL
@@ -54,7 +57,10 @@ class reddit:
                 await message.channel.send("That's not a valid subreddit.")
                 return
             try: # Get a post
-                subredditInstance = await self.prawInstance.subreddit(subreddit)
+                if subreddit.startswith("u_"):
+                    subredditInstance = (await self.prawInstance.redditor(subreddit[2:])).submissions
+                else:
+                    subredditInstance = await self.prawInstance.subreddit(subreddit)
                 if index == "random":
                     try:
                         submission = await subredditInstance.random()
@@ -62,6 +68,13 @@ class reddit:
                     except AttributeError:
                         await message.channel.send("Could not get random post.")
                         index = "first"
+                try:
+                    channelID = str(message.channel.id)
+                except:
+                    channelID = str(0)
+                if not channelID in self.recentSubmissions:
+                    self.recentSubmissions[channelID] = []
+
                 if index != "random":
                     listingGeneratorArgs = {}
                     submission = False
@@ -79,7 +92,7 @@ class reddit:
                         listingGenerator = subredditInstance.hot
 
                     async for submissionIteration in listingGenerator(**listingGeneratorArgs, limit=256):
-                        if not submissionIteration.id in self.recentSubmissions:
+                        if not submissionIteration.id in self.recentSubmissions[channelID]:
                             if not (submissionIteration.stickied and not ("stickied" in command or "pinned" in command)):
                                 submission = submissionIteration
                                 break
@@ -88,14 +101,16 @@ class reddit:
                         await message.channel.send("Could not get a post from that sub.")
 
                 if submission:
-                    self.recentSubmissions += [submission.id]
+                    self.recentSubmissions[channelID] += [submission.id]
                     await self.postSubmission(self, message, submission)
-                if len(self.recentSubmissions) >= 256:
-                    self.recentSubmissions = self.recentSubmissions[32:]
+                if len(self.recentSubmissions[channelID]) >= 256:
+                    self.recentSubmissions[channelID] = self.recentSubmissions[channelID][32:]
             except asyncprawcore.exceptions.NotFound:
-                await message.channel.send("Could not find that subreddit.")
+                await message.channel.send("Could not find that subreddit.\nThe subreddit may be private.")
             except asyncprawcore.exceptions.Forbidden as e:
-                await message.channel.send("I can't do that: " + str(e))
+                await message.channel.send("I can't do that: " + str(e) + ".\nThe subreddit may be banned.")
+            except asyncprawcore.exceptions.Redirect as e:
+                await message.channel.send("I can't do that: " + str(e) + ".\nThe subreddit doesnt exist.")
 
     def submissionID(self, command):
         if len(command) == 0:
@@ -143,19 +158,34 @@ class reddit:
         sendExtra = {}
         # Title stuff
         try:
-            embed.title = submission.title + "\nr/" + submission.subreddit.display_name + " - u/" + submission.author.name
+            submissionInfo = "\nr/" + submission.subreddit.display_name + " - u/" + submission.author.name
         except AttributeError:
-            embed.title = submission.title + "\nr/" + submission.subreddit.display_name + " - [DELETED]"
+            submissionInfo = "\nr/" + submission.subreddit.display_name + " - [DELETED]"
         extras = []
         if submission.over_18: extras += ["NSFW"]
         if submission.spoiler: extras += ["SPOILER"]
         if submission.link_flair_text: extras += ["({0})".format(submission.link_flair_text)]
         if len(extras) >= 1:
-            embed.title += "\n" + " ".join(extras)
+            submissionInfo += "\n" + " ".join(extras)
+
+        # If title is too long
+        embed.description = ""
+        if len(submission.title + submissionInfo) >= 255:
+            # Try to remove the last sentence so the title doesnt cut off half way
+            shortTitle = submission.title[:(240-len(submissionInfo))].split(".")
+            if len(shortTitle) <= 2:
+                embed.title = submission.title[:(200-len(submissionInfo))] + "..." + submissionInfo
+            else:
+                embed.title = ".".join(shortTitle[:-1]) + "..." + submissionInfo
+            embed.description += "**" + submission.title + "**\n\n"
+        else:
+            embed.title = submission.title + submissionInfo
+
+
         embed.url = "https://www.reddit.com" + submission.permalink
 
         # Ratings
-        embed.description = "⬆ {0:,}⠀⠀🗨 {1:,}⠀⠀🗓 {2}".format(submission.score, submission.num_comments,
+        embed.description += "⬆ {0:,}⠀⠀🗨 {1:,}⠀⠀🗓 {2}".format(submission.score, submission.num_comments,
             datetime.datetime.fromtimestamp(submission.created_utc).strftime("%Y-%m-%d %H:%M:%S"))
 
         # Image & Video
@@ -164,11 +194,13 @@ class reddit:
                 bytesio = io.BytesIO(requests.get(submission.url).content)
                 if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
                     filename = "gwen_" + submission.url.split("/")[-1]
-                    sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=True)
-                    embed.set_image(url="attachment://" + filename)
+                    sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
+                    # embed.set_image(url="attachment://" + filename)
                 else:
                     sendExtra["content"] = "Could not get the image because it excedes the Discord 8mb limit.\n" + submission.url
             else:
+                if submission.url[-5:] == ".gifv":
+                    embed.description += "\n\nGifv is not fully supported.\n" + submission.url
                 embed.set_image(url=submission.url)
         if submission.domain in self.videoHosts:
             asyncio.sleep(2)

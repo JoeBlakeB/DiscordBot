@@ -77,39 +77,42 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.author.name == "MEE6":
-        if "365154655313068032" in message.content and "you just wasted more of your life typing" in message.content:
-            await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
-        return
+    try:
+        if message.author.name == "MEE6":
+            if "365154655313068032" in message.content and "you just wasted more of your life typing" in message.content:
+                await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
+            return
 
-    if message.author == bot.user or message.author.bot:
-        return
+        if message.author == bot.user or message.author.bot:
+            return
 
-    try: botNames = ["joebot", message.channel.guild.me.display_name.lower()]
-    except: botNames = "joebot"
+        try: botNames = ["joebot", message.channel.guild.me.display_name.lower()]
+        except: botNames = "joebot"
 
-    if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
-        await message.add_reaction(message.content[1:-1])
+        if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
+            await message.add_reaction(message.content[1:-1])
 
-    elif "kev" in message.content.lower():
-        emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
-        await message.add_reaction(emoji)
+        elif "kev" in message.content.lower():
+            emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
+            await message.add_reaction(emoji)
 
-    if message.content.lower() == "git gud":
-        await message.channel.send("git: 'gud' is not a git command.")
+        if message.content.lower() == "git gud":
+            await message.channel.send("git: 'gud' is not a git command.")
 
-    elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
-        await message.channel.trigger_typing()
-        await botMentioned(message)
+        elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
+            await message.channel.trigger_typing()
+            await botMentioned(message)
 
-    else:
-        for i in message.content.split():
-            if i in ["69", "420"]:
-                await message.channel.send("Nice.")
-                break
-            elif i.lower() in ["pogchamp", "poggers", "pogger", "pogging", "pog"]:
-                await message.channel.send(random.choice(["Pog", "Poggers", "Pogger", "PogChamp", "Pogging", "This is poggers", "This is very poggers"]))
-                break
+        else:
+            for i in message.content.split():
+                if i in ["69", "420"]:
+                    await message.channel.send("Nice.")
+                    break
+                elif i.lower() in ["pogchamp", "poggers", "pogger", "pogging", "pog"]:
+                    await message.channel.send(random.choice(["Pog", "Poggers", "Pogger", "PogChamp", "Pogging", "This is poggers", "This is very poggers"]))
+                    break
+    except discord.errors.Forbidden:
+        pass
 
 class botMentioned:
     from help import help
@@ -125,20 +128,24 @@ class botMentioned:
         while "  " in command: command = command.replace("  ", " ")
         command = command.split()
 
+
         if len(command) >= 2:
             if command[1].startswith("r/"):
                 command[1:2] = ["reddit", command[1][2:]]
+            if command[1].startswith("u/") and len(command[1]) > 3:
+                command[1:2] = ["reddit", "u_" + command[1][2:]]
 
         try:
             commandattr = getattr(self, command[1].lower())
+        except AttributeError:
+            await self.__command_not_found__(message, command)
+            return
         except IndexError:
             await self.__command_not_found__(message, command)
-        except KeyError:
-            await self.__command_not_found__(message, command)
-        except AttributeError as e:
-            await self.__command_not_found__(message, command)
+            return
         except Exception as e:
             await message.channel.send("something went wrong:\n"+str(e))
+            return
         try:
             await commandattr(message, command, self)
         except IndexError:
