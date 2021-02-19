@@ -8,9 +8,6 @@ import datetime
 
 import keys
 
-import warnings
-warnings.filterwarnings('ignore')
-
 class reddit:
     help = {"list": True, "ListPriority": 5, "Title":"Reddit",
         "ShortHelp": "Get a post from a subreddit.",
@@ -30,10 +27,9 @@ class reddit:
         prawInstance = Exception
         prawException = str(e)
 
-    imageHosts = ["i.redd.it", "i.imgur.com", "media1.giphy.com"]
-    videoHosts = ["v.redd.it", "gfycat.com"]
-
     recentSubmissions = {}
+
+    dashResolutions = ["1080", "720", "480", "360", "240", "144", "96"]
 
     async def __new__(self, message, command, parentClass):
         if self.prawInstance == Exception:
@@ -156,17 +152,24 @@ class reddit:
     async def postSubmission(self, message, submission):
         embed = discord.Embed()
         sendExtra = {}
+        addUrlToDescription = True
         # Title stuff
+        await submission.subreddit.load()
+        if submission.subreddit.community_icon == "": submission.subreddit.community_icon =  submission.subreddit.icon_img
         try:
-            submissionInfo = "\nr/" + submission.subreddit.display_name + " - u/" + submission.author.name
+            embed.set_author(name="r/" + submission.subreddit.display_name + " • u/" + submission.author.name, icon_url=submission.subreddit.community_icon)
         except AttributeError:
-            submissionInfo = "\nr/" + submission.subreddit.display_name + " - [DELETED]"
+            embed.set_author(name="r/" + submission.subreddit.display_name + " • [DELETED]", icon_url=submission.subreddit.community_icon)
+        try:
+            embed.color = int(submission.subreddit.primary_color[1:], 16)
+        except: pass
         extras = []
+        submissionInfo = ""
         if submission.over_18: extras += ["NSFW"]
         if submission.spoiler: extras += ["SPOILER"]
         if submission.link_flair_text: extras += ["({0})".format(submission.link_flair_text)]
         if len(extras) >= 1:
-            submissionInfo += "\n" + " ".join(extras)
+            submissionInfo = "\n" + " ".join(extras)
 
         # If title is too long
         embed.description = ""
@@ -181,51 +184,83 @@ class reddit:
         else:
             embed.title = submission.title + submissionInfo
 
-
         embed.url = "https://www.reddit.com" + submission.permalink
 
         # Ratings
         embed.description += "⬆ {0:,}⠀⠀🗨 {1:,}⠀⠀🗓 {2}".format(submission.score, submission.num_comments,
-            datetime.datetime.fromtimestamp(submission.created_utc).strftime("%Y-%m-%d %H:%M:%S"))
+            datetime.datetime.fromtimestamp(submission.created_utc).strftime("%Y-%m-%d %H:%M"))
+
+        # If post is text set post hint
+        try: submission.post_hint
+        except: submission.post_hint = "none"
 
         # Image & Video
-        if submission.domain in self.imageHosts:
-            if submission.spoiler or submission.over_18:
-                bytesio = io.BytesIO(requests.get(submission.url).content)
-                if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
-                    filename = "gwen_" + submission.url.split("/")[-1]
-                    sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
-                    # embed.set_image(url="attachment://" + filename)
-                else:
-                    sendExtra["content"] = "Could not get the image because it excedes the Discord 8mb limit.\n" + submission.url
-            else:
-                if submission.url[-5:] == ".gifv":
-                    embed.description += "\n\nGifv is not fully supported.\n" + submission.url
-                embed.set_image(url=submission.url)
-        if submission.domain in self.videoHosts:
-            asyncio.sleep(2)
-            postJson = requests.get(embed.url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"}).json()
+        if submission.post_hint == "image" or submission.domain == "i.redd.it":
+            addUrlToDescription = False
+            self.embedImage(submission, embed, sendExtra, submission.url)
+        elif submission.post_hint in ["hosted:video", "rich:video"] or submission.domain == "v.redd.it" or submission.url[-4:] in ["gifv", ".gif"]:
+            await asyncio.sleep(1)
+            postJson = self.postJson(embed.url)
+            # Get fallback url
             try:
                 try:
-                    videoFallbackUrl = postJson[0]["data"]["children"][0]["data"]["secure_media"]["reddit_video"]["fallback_url"]
-                except:
-                    videoFallbackUrl = postJson[0]["data"]["children"][0]["data"]["preview"]["reddit_video_preview"]["fallback_url"]
-            except:
+                    videoFallbackUrl = postJson["secure_media"]["reddit_video"]["fallback_url"]
+                except Exception as e:
+                    print(e)
+                    videoFallbackUrl = postJson["preview"]["reddit_video_preview"]["fallback_url"]
+            except Exception as e:
                 videoFallbackUrl = False
-                try:
-                    sendExtra["content"] = "Could not get video because error " + str(postJson["error"]) + " " + str(postJson["message"])
-                except: pass
+
+            # Get video
             if videoFallbackUrl:
-                bytesio = io.BytesIO(requests.get(videoFallbackUrl).content)
-                if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
-                    filename = videoFallbackUrl[9+len(submission.domain):].split(".")[0] + ".mp4"
+                addUrlToDescription = False
+                if videoFallbackUrl.endswith("?source=fallback"):
+                    videoFallbackUrl = videoFallbackUrl[:-16]
+
+                if videoFallbackUrl.split("/")[-1].startswith("DASH_"):
+                    try:
+                        dashResolutions = self.dashResolutions[self.dashResolutions.index(videoFallbackUrl.split("/")[-1][5:-4]):]
+
+                    except:
+                        dashResolutions = [videoFallbackUrl.split("/")[-1][5:-4]] + self.dashResolutions
+
+                    fallbackUrls = []
+                    for dashResolution in dashResolutions:
+                        fallbackUrls += ["DASH_" + dashResolution + ".mp4"]
+
+                    fallbackUrlMain = videoFallbackUrl[:-len(fallbackUrls[0])]
+                else:
+                    fallbackUrls = [videoFallbackUrl.split("/")[-1]]
+                print(dashResolutions, fallbackUrlMain, fallbackUrls)
+
+                for fallbackUrl in fallbackUrls:
+                    bytesio = io.BytesIO(requests.get(fallbackUrlMain + fallbackUrl).content)
+                    if bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
+                        bytesio = False
+                        await asyncio.sleep(.8)
+                    else:
+                        print(fallbackUrl)
+                        break
+
+                if bytesio:
+                    filename = submission.id + "_" + fallbackUrl.lower()
                     sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
-                    embed.set_image(url="attachment://" + filename)
                 else:
                     sendExtra["content"] = "Could not get the video because it excedes the Discord 8mb limit.\n" + videoFallbackUrl
+        elif submission.url.startswith("https://www.reddit.com/gallery/"):
+            await asyncio.sleep(1)
+            postJson = self.postJson(embed.url)
+
+            mediaID = postJson["gallery_data"]["items"][0]["media_id"]
+            previewURL = postJson["media_metadata"][mediaID]["s"]["u"]
+            imageURL = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
+            self.embedImage(submission, embed, sendExtra, imageURL)
+
+            addUrlToDescription = False
+            embed.description += "\n\nFull gallery with " + str(len(postJson["gallery_data"]["items"])) + " images:\n" + submission.url
 
         # URL if the post has a link that isn't an image
-        if submission.url != embed.url and not submission.domain in self.imageHosts + self.videoHosts:
+        if submission.url != embed.url and addUrlToDescription:
             embed.description += "\n\n" + submission.url
 
         # Post description
@@ -235,5 +270,26 @@ class reddit:
             description += "\n(Discord max character limit reached)"
         embed.description += "\n\n" + description
 
-
         await message.channel.send(embed=embed, **sendExtra)
+
+    def embedImage(submission, embed, sendExtra, url):
+        if submission.spoiler or submission.over_18:
+            bytesio = io.BytesIO(requests.get(url).content)
+            if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
+                filename = "gwen_" + submission.url.split("/")[-1]
+                sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
+                embed.set_image(url="attachment://" + filename)
+            else:
+                sendExtra["content"] = "Could not get the image because it excedes the Discord 8mb limit.\n" + url
+        else:
+            embed.set_image(url=url)
+
+    def postJson(url):
+        postJson = requests.get(url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"}).json()
+        # If crosspost
+        try:
+            postJson = postJson[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
+        # If not
+        except:
+            postJson = postJson[0]["data"]["children"][0]["data"]
+        return postJson
