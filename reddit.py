@@ -29,7 +29,7 @@ class reddit:
 
     recentSubmissions = {}
 
-    dashResolutions = ["1080", "720", "480", "360", "240", "144", "96"]
+    dashResolutions = ["1080", "720", "480", "360", "240", "96"]
 
     async def __new__(self, message, command, parentClass):
         if self.prawInstance == Exception:
@@ -192,14 +192,45 @@ class reddit:
 
         # If post is text set post hint
         try: submission.post_hint
-        except: submission.post_hint = "none"
+        except Exception as e:
+            await submission.load()
+            try: submission.post_hint
+            except: submission.post_hint = "none"
 
         # Image & Video
         if submission.post_hint == "image" or submission.domain == "i.redd.it":
             addUrlToDescription = False
-            self.embedImage(submission, embed, sendExtra, submission.url)
+            try:
+                self.embedImage(submission, embed, sendExtra, submission.url)
+            except PermissionError:
+                submission.post_hint = "gifTooLarge"
             await message.channel.trigger_typing()
-        elif submission.post_hint in ["hosted:video", "rich:video"] or submission.domain == "v.redd.it" or submission.url[-4:] in ["gifv", ".gif"]:
+        if submission.url.startswith("https://www.reddit.com/gallery/"):
+            await asyncio.sleep(1)
+            await message.channel.trigger_typing()
+            postJson = self.postJson(embed.url)
+
+            mediaID = postJson["gallery_data"]["items"][0]["media_id"]
+            try:
+                previewURL = postJson["media_metadata"][mediaID]["s"]["u"]
+            except:
+                try:
+                    previewURL = postJson["media_metadata"][mediaID]["s"]["gif"]
+                except:
+                    previewURL = False
+            if previewURL:
+                imageURL = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
+                try:
+                    self.embedImage(submission, embed, sendExtra, imageURL)
+                except PermissionError:
+                    submission.post_hint = "gifTooLarge"
+                await message.channel.trigger_typing()
+            else:
+                embed.description += "\n\nCould not get gallery preview."
+            addUrlToDescription = False
+            embed.description += "\n\nFull gallery with " + str(len(postJson["gallery_data"]["items"])) + " images:\n" + submission.url
+        if submission.post_hint in ["hosted:video", "rich:video", "gifTooLarge"] or submission.domain == "v.redd.it" or (
+                submission.url[-4:] in ["gifv", ".gif"] and submission.post_hint != "image"):
             await asyncio.sleep(.5)
             postJson = self.postJson(embed.url)
             # Get fallback url
@@ -214,60 +245,47 @@ class reddit:
             # Get video
             if videoFallbackUrl:
                 await message.channel.trigger_typing()
-                addUrlToDescription = False
                 if videoFallbackUrl.endswith("?source=fallback"):
                     videoFallbackUrl = videoFallbackUrl[:-16]
 
                 if videoFallbackUrl.split("/")[-1].startswith("DASH_"):
+                    if videoFallbackUrl.split("/")[-1].endswith(".mp4"):
+                        fallbackResolution = videoFallbackUrl.split("/")[-1][5:-4]
+                    else:
+                        fallbackResolution = videoFallbackUrl.split("/")[-1][5:]
                     try:
-                        dashResolutions = self.dashResolutions[self.dashResolutions.index(videoFallbackUrl.split("/")[-1][5:-4]):]
+                        dashResolutions = self.dashResolutions[self.dashResolutions.index(fallbackResolution):]
 
                     except:
-                        dashResolutions = [videoFallbackUrl.split("/")[-1][5:-4]] + self.dashResolutions
+                        dashResolutions = [fallbackResolution] + self.dashResolutions
 
                     fallbackUrls = []
                     for dashResolution in dashResolutions:
-                        fallbackUrls += ["DASH_" + dashResolution + ".mp4"]
+                        if videoFallbackUrl.split("/")[-1].endswith(".mp4"):
+                            fallbackUrls += ["DASH_" + dashResolution + ".mp4"]
+                        else:
+                            fallbackUrls += ["DASH_" + dashResolution]
 
                     fallbackUrlMain = videoFallbackUrl[:-len(fallbackUrls[0])]
                 else:
                     fallbackUrls = [videoFallbackUrl.split("/")[-1]]
 
-                bestQuality = [0, "", ""]
-                for fallbackUrl in fallbackUrls:
-                    await message.channel.trigger_typing()
-                    fileSize = int(requests.head(fallbackUrlMain + fallbackUrl).headers["Content-Length"])
-                    if fileSize >= 8 * 1024 ** 2:
-                        if fileSize > bestQuality[0]:
-                            bestQuality = [fileSize, fallbackUrl]
-                        bytesio = False
-                    else:
-                        bytesio = io.BytesIO(requests.get(fallbackUrlMain + fallbackUrl).content)
-                        if bytesio.getbuffer().nbytes >= 8 * 1024 ** 2:
-                            bytesio = False
-                        else:
-                            break
-                if bestQuality[0] != 0:
-                    embed.description += "\n\nHigher quality video {0}p {1}MB:\n{2}".format(bestQuality[1][5:-4], int(bestQuality[0]/(1024**2)), fallbackUrlMain + bestQuality[1])
+                bytesio, fallbackUrl = await self.getFile(message, embed, fallbackUrlMain, fallbackUrls)
 
                 if bytesio:
                     filename = submission.id + "_" + fallbackUrl.lower()
+                    if not videoFallbackUrl.split("/")[-1].endswith(".mp4"): filename += ".mp4"
                     sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
                 else:
-                    sendExtra["content"] = "Could not get the video because it excedes the Discord 8mb limit.\n" + videoFallbackUrl
-        elif submission.url.startswith("https://www.reddit.com/gallery/"):
-            await asyncio.sleep(1)
-            await message.channel.trigger_typing()
-            postJson = self.postJson(embed.url)
-
-            mediaID = postJson["gallery_data"]["items"][0]["media_id"]
-            previewURL = postJson["media_metadata"][mediaID]["s"]["u"]
-            imageURL = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
-            self.embedImage(submission, embed, sendExtra, imageURL)
-            await message.channel.trigger_typing()
-
-            addUrlToDescription = False
-            embed.description += "\n\nFull gallery with " + str(len(postJson["gallery_data"]["items"])) + " images:\n" + submission.url
+                    embed.description += "\n\nCould not get the video because it excedes the Discord 8MB limit.\n" + videoFallbackUrl
+                addUrlToDescription = False
+            else:
+                if submission.domain == "i.redd.it":
+                    embed.description += "\n\nCould not embed the gif because it is over 8MB and has no fallback video.\n" + submission.url
+                    addUrlToDescription = False
+                else:
+                    embed.description += "\n\nCould not embed the video because it has no fallback.\n" + submission.url
+                    addUrlToDescription = False
 
         # URL if the post has a link that isn't an image
         if submission.url != embed.url and addUrlToDescription:
@@ -283,14 +301,17 @@ class reddit:
         await message.channel.send(embed=embed, **sendExtra)
 
     def embedImage(submission, embed, sendExtra, url):
-        if submission.spoiler or submission.over_18:
+        if submission.spoiler or submission.over_18 or submission.domain != "i.redd.it":
             bytesio = io.BytesIO(requests.get(url).content)
             if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
                 filename = "gwen_" + url.split("/")[-1]
                 sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
                 embed.set_image(url="attachment://" + filename)
             else:
-                sendExtra["content"] = "Could not get the image because it excedes the Discord 8mb limit.\n" + url
+                if url[-4:] == ".gif" or url[-4:] == ".gifv":
+                    raise PermissionError
+                else:
+                    embed.description += "\n\nCould not get the image because it excedes the Discord 8MB limit.\n" + url
         else:
             embed.set_image(url=url)
 
@@ -303,3 +324,26 @@ class reddit:
         except:
             postJson = postJson[0]["data"]["children"][0]["data"]
         return postJson
+
+    async def getFile(message, embed, urlMain, subUrls):
+        bestQuality = [0, ""]
+        for subUrl in subUrls:
+            await message.channel.trigger_typing()
+            head = requests.head(urlMain + subUrl)
+            fileSize = int(head.headers["Content-Length"])
+            if fileSize >= 8 * 1024 ** 2 or head.status_code != 200:
+                if fileSize > bestQuality[0]:
+                    bestQuality = [fileSize, subUrl]
+                bytesio = False
+            else:
+                get = requests.get(urlMain + subUrl)
+                bytesio = io.BytesIO(get.content)
+                if bytesio.getbuffer().nbytes >= 8 * 1024 ** 2 or get.status_code != 200:
+                    bytesio = False
+                else:
+                    break
+        if bestQuality[0] != 0:
+            fileSize = int(bestQuality[0]/(1024**2))
+            if fileSize == 8: fileSize = 9
+            embed.description += "\n\n[Higher quality ({0}MB)]({1})".format(fileSize, urlMain + bestQuality[1])
+        return bytesio, subUrl
