@@ -192,3 +192,5 @@ print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Closing")
 loop = asyncio.new_event_loop()
 loop.run_until_complete(asyncio.wait([botMentioned.reddit.prawInstance.close(), botMentioned.reddit.saveRecentSubmissions(botMentioned.reddit)]))
 loop.close()
+
+print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Closed")

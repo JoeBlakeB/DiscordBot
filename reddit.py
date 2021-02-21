@@ -5,6 +5,9 @@ import io
 import re
 import asyncio
 import datetime
+import os
+import json
+import bz2
 
 import keys
 
@@ -87,7 +90,7 @@ class reddit:
                     else:
                         listingGenerator = subredditInstance.hot
 
-                    async for submissionIteration in listingGenerator(**listingGeneratorArgs, limit=256):
+                    async for submissionIteration in listingGenerator(**listingGeneratorArgs, limit=512):
                         if not submissionIteration.id in self.recentSubmissions[channelID]:
                             if not (submissionIteration.stickied and not ("stickied" in command or "pinned" in command)):
                                 submission = submissionIteration
@@ -99,7 +102,7 @@ class reddit:
                 if submission:
                     self.recentSubmissions[channelID] += [submission.id]
                     await self.postSubmission(self, message, submission)
-                if len(self.recentSubmissions[channelID]) >= 256:
+                if len(self.recentSubmissions[channelID]) >= 512:
                     self.recentSubmissions[channelID] = self.recentSubmissions[channelID][32:]
             except asyncprawcore.exceptions.NotFound:
                 await message.channel.send("Could not find that subreddit.\nThe subreddit may be private.")
@@ -349,7 +352,12 @@ class reddit:
         return bytesio, subUrl
 
     async def loadRecentSubmissions(self):
-        pass
+        try:
+            with bz2.open("tmp/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
+                self.recentSubmissions = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
+        except FileNotFoundError: pass
 
     async def saveRecentSubmissions(self):
-        pass
+        os.makedirs("tmp", exist_ok=True)
+        with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
+            recentSubmissionsFile.write(bytes(json.dumps(self.recentSubmissions, indent=4), "utf-8"))
