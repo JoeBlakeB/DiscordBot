@@ -99,7 +99,7 @@ class unit:
     def search(self, message, command, parentClass):
         raise NotImplementedError("NotImplementedError: search still work in progress")
 
-    def setup(self):
+    async def setup(self):
         try:
             with open("btecURLs.txt") as urlFile:
                 units = urlFile.read().strip().split()

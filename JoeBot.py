@@ -11,6 +11,9 @@ import asyncio
 
 import keys
 
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 try:
     token = keys.read("Discord")
 except:
@@ -174,14 +177,18 @@ class botMentioned:
         global bot
         return bot
 
-def startThreads():
+def startThreads(loop, threads):
     for thread in threads:
-        threads[thread].start()
+        loop.create_task(thread)
 
 print("Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__)
 
-threads = {"unitSetup": threading.Thread(target=botMentioned.unit.setup, args=(botMentioned.unit,))}
-startThreads()
+threads = [botMentioned.unit.setup(botMentioned.unit),
+    botMentioned.reddit.loadRecentSubmissions(botMentioned.reddit)]
+startThreads(asyncio.get_event_loop(), threads)
 bot.run(token, reconnect=True)
+print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Closing")
 
-asyncio.get_event_loop().close()
+loop = asyncio.new_event_loop()
+loop.run_until_complete(asyncio.wait([botMentioned.reddit.prawInstance.close(), botMentioned.reddit.saveRecentSubmissions(botMentioned.reddit)]))
+loop.close()

@@ -347,3 +347,9 @@ class reddit:
             if fileSize == 8: fileSize = 9
             embed.description += "\n\n[Higher quality ({0}MB)]({1})".format(fileSize, urlMain + bestQuality[1])
         return bytesio, subUrl
+
+    async def loadRecentSubmissions(self):
+        pass
+
+    async def saveRecentSubmissions(self):
+        pass
