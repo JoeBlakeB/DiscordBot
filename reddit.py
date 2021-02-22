@@ -155,6 +155,7 @@ class reddit:
     async def postSubmission(self, message, submission):
         embed = discord.Embed()
         sendExtra = {}
+        sendExtra2 = {}
         addUrlToDescription = True
         # Title stuff
         await submission.subreddit.load()
@@ -204,14 +205,14 @@ class reddit:
         if submission.post_hint == "image" or submission.domain == "i.redd.it":
             addUrlToDescription = False
             try:
-                self.embedImage(submission, embed, sendExtra, submission.url)
+                await self.embedImage(submission, embed, sendExtra, submission.url)
             except PermissionError:
                 submission.post_hint = "gifTooLarge"
             await message.channel.trigger_typing()
         if submission.url.startswith("https://www.reddit.com/gallery/"):
             await asyncio.sleep(1)
             await message.channel.trigger_typing()
-            postJson = self.postJson(embed.url)
+            postJson = await self.postJson(embed.url)
 
             mediaID = postJson["gallery_data"]["items"][0]["media_id"]
             try:
@@ -224,7 +225,7 @@ class reddit:
             if previewURL:
                 imageURL = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
                 try:
-                    self.embedImage(submission, embed, sendExtra, imageURL)
+                    await self.embedImage(submission, embed, sendExtra, imageURL)
                 except PermissionError:
                     submission.post_hint = "gifTooLarge"
                 await message.channel.trigger_typing()
@@ -235,7 +236,7 @@ class reddit:
         if submission.post_hint in ["hosted:video", "rich:video", "gifTooLarge"] or submission.domain == "v.redd.it" or (
                 submission.url[-4:] in ["gifv", ".gif"] and submission.post_hint != "image"):
             await asyncio.sleep(.5)
-            postJson = self.postJson(embed.url)
+            postJson = await self.postJson(embed.url)
             # Get fallback url
             try:
                 try:
@@ -276,19 +277,21 @@ class reddit:
                 bytesio, fallbackUrl = await self.getFile(message, embed, fallbackUrlMain, fallbackUrls)
 
                 if bytesio:
-                    filename = submission.id + "_" + fallbackUrl.lower()
+                    filename = submission.id + "_" + fallbackUrl.lower().split("?")[0]
                     if not videoFallbackUrl.split("/")[-1].endswith(".mp4"): filename += ".mp4"
                     sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
                 else:
-                    embed.description += "\n\nCould not get the video because it excedes the Discord 8MB limit.\n" + videoFallbackUrl
+                    if submission.spoiler or submission.over_18: sendExtra2["content"] = "||" + videoFallbackUrl + "||"
+                    else: sendExtra2["content"] = videoFallbackUrl
                 addUrlToDescription = False
             else:
-                if submission.domain == "i.redd.it":
+                if submission.url.endswith("gif"):
                     embed.description += "\n\nCould not embed the gif because it is over 8MB and has no fallback video.\n" + submission.url
                     addUrlToDescription = False
                 else:
-                    embed.description += "\n\nCould not embed the video because it has no fallback.\n" + submission.url
                     addUrlToDescription = False
+                    if submission.spoiler or submission.over_18: sendExtra2["content"] = "||" + submission.url + "||"
+                    else: sendExtra2["content"] = submission.url
 
         # URL if the post has a link that isn't an image
         if submission.url != embed.url and addUrlToDescription:
@@ -302,12 +305,16 @@ class reddit:
         embed.description += "\n\n" + description
 
         await message.channel.send(embed=embed, **sendExtra)
+        if sendExtra2 != {}:
+            await message.channel.send(**sendExtra2)
 
-    def embedImage(submission, embed, sendExtra, url):
+    async def embedImage(submission, embed, sendExtra, url):
+        loop = asyncio.get_event_loop()
         if submission.spoiler or submission.over_18 or submission.domain != "i.redd.it":
-            bytesio = io.BytesIO(requests.get(url).content)
+            get = await loop.run_in_executor(None, requests.get, url)
+            bytesio = io.BytesIO(get.content)
             if not bytesio.getbuffer().nbytes >= 8 * 1024 * 1024:
-                filename = "gwen_" + url.split("/")[-1]
+                filename = "gwen_" + url.split("/")[-1].split("?")[0]
                 sendExtra["file"] = discord.File(fp=bytesio, filename=filename, spoiler=(submission.spoiler or submission.over_18))
                 embed.set_image(url="attachment://" + filename)
             else:
@@ -318,8 +325,10 @@ class reddit:
         else:
             embed.set_image(url=url)
 
-    def postJson(url):
-        postJson = requests.get(url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"}).json()
+    async def postJson(url):
+        loop = asyncio.get_event_loop()
+        get = await loop.run_in_executor(None, reddit.get, url+".json")
+        postJson = get.json()
         # If crosspost
         try:
             postJson = postJson[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
@@ -329,17 +338,18 @@ class reddit:
         return postJson
 
     async def getFile(message, embed, urlMain, subUrls):
+        loop = asyncio.get_event_loop()
         bestQuality = [0, ""]
         for subUrl in subUrls:
             await message.channel.trigger_typing()
-            head = requests.head(urlMain + subUrl)
+            head = await loop.run_in_executor(None, requests.head, urlMain + subUrl)
             fileSize = int(head.headers["Content-Length"])
             if fileSize >= 8 * 1024 ** 2 or head.status_code != 200:
                 if fileSize > bestQuality[0]:
                     bestQuality = [fileSize, subUrl]
                 bytesio = False
             else:
-                get = requests.get(urlMain + subUrl)
+                get = await loop.run_in_executor(None, requests.get, urlMain + subUrl)
                 bytesio = io.BytesIO(get.content)
                 if bytesio.getbuffer().nbytes >= 8 * 1024 ** 2 or get.status_code != 200:
                     bytesio = False
@@ -361,3 +371,5 @@ class reddit:
         os.makedirs("tmp", exist_ok=True)
         with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
             recentSubmissionsFile.write(bytes(json.dumps(self.recentSubmissions, indent=4), "utf-8"))
+
+    def get(url): return requests.get(url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"})
