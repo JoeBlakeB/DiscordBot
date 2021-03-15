@@ -78,6 +78,9 @@ async def on_ready():
     if not botPresenceRunning:
         asyncio.create_task(botPresence())
 
+import time
+lastReminder = {}
+
 @bot.event
 async def on_message(message):
     try:
@@ -89,6 +92,17 @@ async def on_message(message):
         if message.author == bot.user or message.author.bot:
             return
 
+
+        global lastReminder
+        try: lastReminder[message.author.id]
+        except: lastReminder[message.author.id] = 0
+
+        if "ඞ" in message.author.display_name and lastReminder[message.author.id] < time.time() - 180 and random.randint(1,3) == 2:
+            await message.channel.send("Do the work <@!{0}>".format(message.author.id))
+            lastReminder[message.author.id] = time.time()
+        #             await message.channel.guild.me.edit(nick="ඞ")
+
+
         try: botNames = ["joebot", message.channel.guild.me.display_name.lower()]
         except: botNames = "joebot"
 
@@ -96,14 +110,13 @@ async def on_message(message):
             await message.add_reaction(message.content[1:-1])
 
         elif "kev" in message.content.lower():
-            emoji = discord.utils.get(message.channel.guild.emojis, name='xander')
+            emoji = discord.utils.get(bot.emojis, name='xander')
             await message.add_reaction(emoji)
 
         if message.content.lower() == "git gud":
             await message.channel.send("git: 'gud' is not a git command.")
 
         elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
-            await message.channel.trigger_typing()
             await botMentioned(message)
 
         else:
@@ -120,10 +133,10 @@ async def on_message(message):
 class botMentioned:
     from help import help
     from btec import unit
-    from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn
+    from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn, __admin__
     from stats import stats
     from crypto import crypto
-    from reddit import reddit
+    from reddit import reddit, redditv2
 
     async def __new__(self, message):
         command = message.content.strip()
@@ -132,7 +145,11 @@ class botMentioned:
         command = command.split()
 
 
-        if len(command) >= 2:
+        if len(command) >= 2: # dont run when bot is only @ with no message
+            # Admin
+            if command[1] in ["!", "sudo", "$", "#"]:
+                return await self.__admin__(message, command, self)
+            # Reddit
             if command[1].startswith("r/"):
                 command[1:2] = ["reddit", command[1][2:]]
             if command[1].startswith("u/") and len(command[1]) > 3:
@@ -150,6 +167,7 @@ class botMentioned:
             await message.channel.send("something went wrong:\n"+str(e))
             return
         try:
+            await message.channel.trigger_typing()
             await commandattr(message, command, self)
         except IndexError:
             await self.__command_not_found__(message, command)

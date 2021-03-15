@@ -74,3 +74,46 @@ class porn:
         embed.color = parentClass.__embedColor__()
         embed.url = "https://bit.ly/" + random.choice(self.urls)
         await message.channel.send(embed=embed)
+
+class __admin__:
+    async def __new__(self, message, command, parentClass):
+        try:
+            if "__" in command[2]:
+                raise Exception
+            commandattr = getattr(self, command[2].lower())
+        except:
+            # Command Not Found
+            return await message.add_reaction("❓")
+
+        adminRole = False
+        for role in message.author.roles:
+            if str(role).lower() in ["admin"]: adminRole = True
+        if (not adminRole) and (message.author.id != 365154655313068032):
+            # Access Denied
+            return await message.add_reaction("⛔")
+
+        try:
+            if not await commandattr(self, message, command, parentClass):
+                return await message.add_reaction("✅")
+        except Exception as e: # Error
+            await message.add_reaction("⚠️")
+            if command[1] == "#":
+                await message.channel.send(e)
+
+    async def nick(self, message, command, parentClass):
+        await message.guild.me.edit(nick=" ".join(command[3:]))
+
+    async def nick2(self, message, command, parentClass):
+        await message.guild.get_member(int(command[3])).edit(nick=" ".join(command[4:]))
+
+    async def perm_list(self, message, command, parentClass):
+        await message.channel.trigger_typing()
+        await message.channel.send([perm[0] for perm in message.guild.me.guild_permissions if perm[1]])
+
+    async def delete(self, message, command, parentClass):
+        referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+        await referenceMessage.delete()
+        await message.add_reaction("✅")
+        await asyncio.sleep(3)
+        await message.delete()
+        return True
