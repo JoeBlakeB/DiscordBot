@@ -30,6 +30,11 @@ class say:
             raise IndexError
             return
         await message.channel.send(" ".join(command[2:]))
+        try:
+            await message.add_reaction("✅")
+            await asyncio.sleep(3)
+            await message.delete()
+        except: pass
 
 class gun:
     async def __new__(self, message, command, parentClass):
@@ -76,6 +81,7 @@ class porn:
         await message.channel.send(embed=embed)
 
 class __admin__:
+    owner = 365154655313068032
     async def __new__(self, message, command, parentClass):
         try:
             if "__" in command[2]:
@@ -88,7 +94,7 @@ class __admin__:
         adminRole = False
         for role in message.author.roles:
             if str(role).lower() in ["admin"]: adminRole = True
-        if (not adminRole) and (message.author.id != 365154655313068032):
+        if (not adminRole) and (message.author.id != self.owner):
             # Access Denied
             return await message.add_reaction("⛔")
 
@@ -100,20 +106,54 @@ class __admin__:
             if command[1] == "#":
                 await message.channel.send(e)
 
+    async def __delete(message, react, time):
+        try:
+            await message.add_reaction(react)
+            await asyncio.sleep(time)
+            await message.delete()
+        except: pass
+        return True
+
     async def nick(self, message, command, parentClass):
         await message.guild.me.edit(nick=" ".join(command[3:]))
 
     async def nick2(self, message, command, parentClass):
+        if len(command) == 3:
+            await message.add_reaction("❓")
+            return True, await message.channel.send("joebot ! nick2 <userID> <nick>")
         await message.guild.get_member(int(command[3])).edit(nick=" ".join(command[4:]))
 
-    async def perm_list(self, message, command, parentClass):
+    async def perms(self, message, command, parentClass):
         await message.channel.trigger_typing()
         await message.channel.send([perm[0] for perm in message.guild.me.guild_permissions if perm[1]])
 
     async def delete(self, message, command, parentClass):
         referenceMessage = await message.channel.fetch_message(message.reference.message_id)
         await referenceMessage.delete()
-        await message.add_reaction("✅")
-        await asyncio.sleep(3)
-        await message.delete()
-        return True
+        return await self.__delete(message, "✅", 3)
+
+    async def __role(self, message, command, parentClass, roleFunc):
+        if message.author.id != self.owner:
+            return True, await message.add_reaction("⛔")
+        if len(command) == 3:
+            await message.add_reaction("❓")
+            return True, await message.channel.send("joebot ! "+roleFunc+" <userID> <roleName>")
+        userID = ""
+        for character in command[3]:
+            if character in "0123456789":
+                userID += character
+        member = message.guild.get_member(int(userID))
+        if roleFunc == "addRole": roleFunction = member.add_roles
+        else: roleFunction = member.remove_roles
+        await roleFunction(discord.utils.get(message.guild.roles, name=" ".join(command[4:])))
+
+    async def addrole(self, message, command, parentClass):
+        return await self.__role(self, message, command, parentClass, "addRole")
+
+    async def removerole(self, message, command, parentClass):
+        return await self.__role(self, message, command, parentClass, "removeRole")
+
+    async def edit(self, message, command, parentClass):
+        referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+        await referenceMessage.edit(content=message.content[len(" ".join(command[:3])):])
+        return await self.__delete(message, "✅", 3)

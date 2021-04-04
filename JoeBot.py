@@ -38,14 +38,15 @@ async def botPresence():
         try:
             dogeValue = round(botMentioned.crypto.getValue("doge") * 100, 2)
             if dogeValue == 0:
-                now = datetime.datetime.now()
-                timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
-                if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
-                    await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
-                else:
-                    await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
+                # now = datetime.datetime.now()
+                # timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
+                # if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
+                #     await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
+                # else:
+                await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
             else:
                 await bot.change_presence(activity=discord.Activity(name="doge @ "+str(dogeValue)+"p 🚀🌑", type=3))
+                await asyncio.sleep(1200)
             await asyncio.sleep(random.randint(200, 300))
         except:
             botPresenceRunning = False
@@ -71,6 +72,15 @@ async def on_member_join(member):
 async def on_member_remove(member):
     await userJoinLeave(member, leaveMessages)
 
+
+@bot.event
+async def on_reaction_add(reaction, message):
+    message = reaction.message
+    if "test" in message.content and reaction.emoji == '🍆':
+        try:
+            await reaction.clear()
+        except Exception as e:
+            await message.channel.send(str(e))
 
 @bot.event
 async def on_ready():
@@ -145,11 +155,9 @@ class botMentioned:
         command = command.split()
 
 
-        if len(command) >= 2: # dont run when bot is only @ with no message
-            # Admin
+        if len(command) >= 2:
             if command[1] in ["!", "sudo", "$", "#"]:
                 return await self.__admin__(message, command, self)
-            # Reddit
             if command[1].startswith("r/"):
                 command[1:2] = ["reddit", command[1][2:]]
             if command[1].startswith("u/") and len(command[1]) > 3:
@@ -167,7 +175,9 @@ class botMentioned:
             await message.channel.send("something went wrong:\n"+str(e))
             return
         try:
-            await message.channel.trigger_typing()
+            try:
+                if commandattr.typing: await message.channel.trigger_typing()
+            except: await message.channel.trigger_typing()
             await commandattr(message, command, self)
         except IndexError:
             await self.__command_not_found__(message, command)

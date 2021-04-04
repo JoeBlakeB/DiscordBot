@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import requests
+import traceback
 import discord
 
 class crypto:
@@ -72,4 +73,5 @@ class crypto:
             value = float(cryptoMetrics["data"]["market_data"]["price_usd"]) * float(exchangeRate["rates"]["GBP"])
             return value
         except:
+            traceback.print_exc()
             return 0

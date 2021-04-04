@@ -8,18 +8,13 @@ import datetime
 import os
 import json
 import bz2
+import time
+import sys
+import random
 
 import keys
 
-class reddit:
-    help = {"list": True, "ListPriority": 5, "Title":"Reddit",
-        "ShortHelp": "Get a post from a subreddit.",
-        "LongHelp": "Get a post from a subreddit.\n"+
-        "**@{displayName} reddit** to get a post from the front page.\n"+
-        "**@{displayName} reddit r/<subreddit>** or **@{displayName} r/<subreddit>** "+
-        "to get a post from the front page of that subreddit.\n"+
-        "**@{displayName} reddit r/<subreddit> [hot/top/new/rising] [random]** to get a post from hot/new of a subreddit.\n"+
-        "**@{displayName} reddit <share link>** or **@{displayName} reddit post <id>** to share a post from reddit and embed it."}
+class redditv2:
 
     try:
         secrets = keys.read("reddit-client_id", "reddit-client_secret", "reddit-username", "reddit-password")
@@ -32,15 +27,45 @@ class reddit:
 
     recentSubmissions = {}
 
-    dashResolutions = ["1080", "720", "480", "360", "240", "96"]
+    async def loadRecentSubmissions(self):
+        try:
+            with bz2.open("tmp/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
+                self.recentSubmissions = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
+        except FileNotFoundError: pass
+
+    async def saveRecentSubmissions(self):
+        os.makedirs("tmp", exist_ok=True)
+        with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
+            recentSubmissionsFile.write(bytes(json.dumps(self.recentSubmissions, indent=4), "utf-8"))
 
     async def __new__(self, message, command, parentClass):
+        await message.channel.send("Reddit V2 is currently unavailable")
+
+
+class reddit(redditv2):
+    help = {"list": True, "ListPriority": 5, "Title":"Reddit",
+        "ShortHelp": "Get a post from a subreddit.",
+        "LongHelp": "Get a post from a subreddit.\n"+
+        "**@{displayName} reddit** to get a post from the front page.\n"+
+        "**@{displayName} reddit r/<subreddit>** or **@{displayName} r/<subreddit>** "+
+        "to get a post from the front page of that subreddit.\n"+
+        "**@{displayName} reddit r/<subreddit> [hot/top/new/rising] [random]** to get a post from hot/new of a subreddit.\n"+
+        "**@{displayName} reddit <share link>** or **@{displayName} reddit post <id>** to share a post from reddit and embed it."}
+
+    dashResolutions = ["1080", "720", "480", "360", "240", "96"]
+
+    typing = False
+
+    async def __new__(self, message, command, parentClass):
+        for role in message.author.roles:
+            if str(role).lower() == "no joebot":
+                return await message.add_reaction("⛔")
+
+        await message.channel.trigger_typing()
+
         if self.prawInstance == Exception:
             await message.channel.send("Reddit is currently unavailable:\n"+self.prawException)
             return
-        if "feet" in message.content.lower() or "foot" in message.content.lower() or "spit" in message.content.lower():
-            await message.channel.send("```diff\n- I recommend you DON'T unspoiler this! - \n```")
-            await message.channel.trigger_typing()
 
         isSubmission, submissionID = self.submissionID(self, command[2:])
         # If given URL
@@ -56,6 +81,7 @@ class reddit:
                 await message.channel.send("That's not a valid subreddit.")
                 return
             try: # Get a post
+                timeStart = time.time()
                 if subreddit.startswith("u_"):
                     subredditInstance = (await self.prawInstance.redditor(subreddit[2:])).submissions
                 else:
@@ -99,6 +125,18 @@ class reddit:
                     if not submission:
                         await message.channel.send("Could not get a post from that sub.")
 
+                    now = datetime.datetime.now()
+                    timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
+                    if (submission.over_18 and (now.weekday() in [2,4])) and (timeNow >= 900 and timeNow <= 1600) and message.author.id == 217412254608392193:
+                        return await message.add_reaction("⛔")
+                    if submission.over_18:
+                        for role in message.author.roles:
+                            if str(role).lower() == "no nsfw":
+                                return await message.add_reaction("⛔")
+                        # if submission.subreddit.display_name.lower() in ["eyeblech"]:
+                        #     return await message.add_reaction("❌")
+
+                #print("Chose post", time.time() - timeStart)
                 if submission:
                     self.recentSubmissions[channelID] += [submission.id]
                     await self.postSubmission(self, message, submission)
@@ -110,6 +148,8 @@ class reddit:
                 await message.channel.send("I can't do that: " + str(e) + ".\nThe subreddit may be banned.")
             except asyncprawcore.exceptions.Redirect as e:
                 await message.channel.send("I can't do that: " + str(e) + ".\nThe subreddit doesnt exist.")
+            except Exception as e:
+                await message.channel.send("I can't do that: " + str(e))
 
     def submissionID(self, command):
         if len(command) == 0:
@@ -153,6 +193,7 @@ class reddit:
         return subreddit, sort, index
 
     async def postSubmission(self, message, submission):
+        timeStart = time.time()
         embed = discord.Embed()
         sendExtra = {}
         sendExtra2 = {}
@@ -189,17 +230,38 @@ class reddit:
             embed.title = submission.title + submissionInfo
 
         embed.url = "https://www.reddit.com" + submission.permalink
+        #print("Embed Meta", time.time() - timeStart)
+        timeStart = time.time()
 
         # Ratings
         embed.description += "⬆ {0:,}⠀⠀🗨 {1:,}⠀⠀🗓 {2}".format(submission.score, submission.num_comments,
             datetime.datetime.fromtimestamp(submission.created_utc).strftime("%Y-%m-%d %H:%M"))
 
         # If post is text set post hint
+        await submission.load()
+
         try: submission.post_hint
         except Exception as e:
-            await submission.load()
             try: submission.post_hint
             except: submission.post_hint = "none"
+
+        if (submission.over_18 and datetime.datetime.today().strftime("%m%d") == "0401") or (submission.subreddit.display_name.lower() in ["eyeblech"]):
+            submission.url = random.choice(["https://cdn.discordapp.com/attachments/796434329831604288/827110312183857152/HoodCate.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110903920066601/DontMessWithHoodCate.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110907443544064/HoodCate2.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110909154951188/HoodCateAd.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110909733502986/HoodCateChill.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110911927255050/HoodCateHD.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110919783317504/HoodCateSleep2.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110921268756491/HoodCateSmug.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110913080950804/HoodCateLeft.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827110914712272896/HoodCateRight.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827111935282774016/YoungHoodCate2.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827111933664690196/YoungHoodCate.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827111931416150076/HoodCateSleep3.jpg",
+                "https://cdn.discordapp.com/attachments/796434329831604288/827111931419820053/HoodCateSleep.png"])
+            submission.post_hint = "image"
+            submission.domain = "i.redd.it"
 
         # Image & Video
         if submission.post_hint == "image" or submission.domain == "i.redd.it":
@@ -293,6 +355,10 @@ class reddit:
                     if submission.spoiler or submission.over_18: sendExtra2["content"] = "||" + submission.url + "||"
                     else: sendExtra2["content"] = submission.url
 
+
+        #print("Embed Media", time.time() - timeStart)
+        timeStart = time.time()
+
         # URL if the post has a link that isn't an image
         if submission.url != embed.url and addUrlToDescription:
             embed.description += "\n\n" + submission.url
@@ -304,9 +370,15 @@ class reddit:
             description += "\n(Discord max character limit reached)"
         embed.description += "\n\n" + description
 
+        #if submission.over_18:
+        #    sendExtra["content"] = "Here you go " + message.author.display_name
+        print(str(message.author)+" NSFW:" + str(submission.over_18) +" "+ submission.subreddit.display_name+" "+ submission.id)
+        sys.stdout.flush()
         await message.channel.send(embed=embed, **sendExtra)
         if sendExtra2 != {}:
             await message.channel.send(**sendExtra2)
+
+        #print("Send", time.time() - timeStart)
 
     async def embedImage(submission, embed, sendExtra, url):
         loop = asyncio.get_event_loop()
@@ -360,16 +432,5 @@ class reddit:
             if fileSize == 8: fileSize = 9
             embed.description += "\n\n[Higher quality ({0}MB)]({1})".format(fileSize, urlMain + bestQuality[1])
         return bytesio, subUrl
-
-    async def loadRecentSubmissions(self):
-        try:
-            with bz2.open("tmp/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
-                self.recentSubmissions = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
-        except FileNotFoundError: pass
-
-    async def saveRecentSubmissions(self):
-        os.makedirs("tmp", exist_ok=True)
-        with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
-            recentSubmissionsFile.write(bytes(json.dumps(self.recentSubmissions, indent=4), "utf-8"))
 
     def get(url): return requests.get(url+".json", headers={"User-Agent":"Joe#8648 - joeblakeb.github.io"})
