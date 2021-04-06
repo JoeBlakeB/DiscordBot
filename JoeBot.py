@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 
 import discord
-import os
-import sys
-import re
-import random
-import datetime
-import threading
 import asyncio
+import traceback
+import sys
+import time
 
 import keys
+from emojis import emojis
 
-if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+# Get Discord token
 
 try:
     token = keys.read("Discord")
@@ -25,200 +22,82 @@ except:
         print("Token not found in token.txt and not in args")
         exit(1)
 
-intents = discord.Intents.default()
-intents.members = True
-bot = discord.Client(intents=intents)
+# Create bot
+class bot:
+    intents = discord.Intents.default()
+    intents.members = True
+    client = discord.Client(intents=intents)
 
-botPresenceRunning = False
-async def botPresence():
-    songs = ["C418 - Dog", "C418 - Cat", "C418 - Blocks", "C418 - Strad", "C418 - Wait", "C418 - Living Mice",
-             "C418 - Chirp", "C418 - Mice On Venus", "C418 - Aria Math", "C418 - Subwoofer Lullaby"]
-    botPresenceRunning = True
-    while True:
-        try:
-            dogeValue = round(botMentioned.crypto.getValue("doge") * 100, 2)
-            if dogeValue == 0:
-                # now = datetime.datetime.now()
-                # timeNow = int(str(now.hour)+("0"+str(now.minute))[-2:])
-                # if now.weekday() in [0, 2, 4] and timeNow >= 845 and timeNow <= 1600:
-                #     await bot.change_presence(activity=discord.Activity(name="@JoeBot help", type=2))
-                # else:
-                await bot.change_presence(activity=discord.Activity(name=random.choice(songs), type=2))
-            else:
-                await bot.change_presence(activity=discord.Activity(name="doge @ "+str(dogeValue)+"p 🚀🌑", type=3))
-                await asyncio.sleep(1200)
-            await asyncio.sleep(random.randint(200, 300))
-        except:
-            botPresenceRunning = False
-            return
+    import modules
+    mentionedCommands = {}
+    exclamationCommands = {}
+    for module in dir(modules):
+        if not module[:2] == "__":
+            module = getattr(modules, module)
+            for moduleClass in dir(module):
+                try:
+                    mentionedCommands = getattr(module, moduleClass).mentionedCommands
+#                    print(getattr(module, moduleClass).exclamationCommands)
+                except AttributeError: pass
 
-joinMessages = ["I should probably warn you that {name} is a registered sex offender."]
-leaveMessages = ["{name} leaving is kinda poggers."]
+    mentionedCommandsList = list(mentionedCommands)
+#    exclamationCommandsList = list(exclamationCommands)
 
-async def userJoinLeave(member, messageList):
-    for channelName in ["welcome", "general"]:
-        channel = discord.utils.get(member.guild.text_channels, name=channelName)
-        if channel != None:
-            try:
-                await channel.send(random.choice(messageList).format(name=member.display_name))
-                return
-            except: pass
+    async def runCommand(message, command, exclamation=False):
+        if exclamation:
+            commandData = bot.exclamationCommands[command]
+        else:
+            commandData = bot.mentionedCommands[command]
 
-@bot.event
+        kwargs = commandData[2]
+        for arg in commandData[1]:
+            if arg == "message":
+                kwargs[arg] = message
+
+        await commandData[0](**kwargs)
+
+# Events
+
+@bot.client.event
 async def on_member_join(member):
-    await userJoinLeave(member, joinMessages)
+    pass # await userJoinLeave(member, True)
 
-@bot.event
+@bot.client.event
 async def on_member_remove(member):
-    await userJoinLeave(member, leaveMessages)
+    pass # await userJoinLeave(member, False)
 
-
-@bot.event
-async def on_reaction_add(reaction, message):
-    message = reaction.message
-    if "test" in message.content and reaction.emoji == '🍆':
-        try:
-            await reaction.clear()
-        except Exception as e:
-            await message.channel.send(str(e))
-
-@bot.event
+@bot.client.event
 async def on_ready():
-    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Logged in as {0.user}".format(bot))
-    if not botPresenceRunning:
-        asyncio.create_task(botPresence())
+    print("Logged in as {0.user}".format(bot.client), flush=True)
 
-import time
-lastReminder = {}
-
-@bot.event
+@bot.client.event
 async def on_message(message):
     try:
-        if message.author.name == "MEE6":
-            if "365154655313068032" in message.content and "you just wasted more of your life typing" in message.content:
-                await message.channel.send("<@!365154655313068032> has told me to tell you to fuck off")
-            return
+        messageContentLower = message.content.lower()
+        if messageContentLower.startswith(message.channel.guild.me.display_name.lower()) and not message.author.bot:
+            messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
 
-        if message.author == bot.user or message.author.bot:
-            return
+        if messageContentLower.split(" ")[0] == "joebot" and not message.author.bot:
+            messageCommand = messageContentLower[7:]
+            for command in bot.mentionedCommandsList:
+                if command.split(" ") == 1:
+                    if command == messageCommand.split(" ")[0]:
+                        await bot.runCommand(message, command)
+                else:
+                    if messageCommand.startswith(command+" ") or messageCommand == command:
+                        await bot.runCommand(message, command)
+    except:
+        await message.channel.send("<@365154655313068032> " + traceback.format_exc())
 
+# Start
 
-        global lastReminder
-        try: lastReminder[message.author.id]
-        except: lastReminder[message.author.id] = 0
+print("Starting JoeBot with Python Version " + sys.version[:5] + " and Discord Version " + discord.__version__, flush=True)
+# asyncio.get_event_loop().create_task(thread)
+bot.client.run(token, reconnect=True)
 
-        if "ඞ" in message.author.display_name and lastReminder[message.author.id] < time.time() - 180 and random.randint(1,3) == 2:
-            await message.channel.send("Do the work <@!{0}>".format(message.author.id))
-            lastReminder[message.author.id] = time.time()
-        #             await message.channel.guild.me.edit(nick="ඞ")
+# Close
 
-
-        try: botNames = ["joebot", message.channel.guild.me.display_name.lower()]
-        except: botNames = "joebot"
-
-        if re.match(r"<:(xander|fido):[0-9]+>", message.content.lower()):
-            await message.add_reaction(message.content[1:-1])
-
-        elif "kev" in message.content.lower():
-            emoji = discord.utils.get(bot.emojis, name='xander')
-            await message.add_reaction(emoji)
-
-        if message.content.lower() == "git gud":
-            await message.channel.send("git: 'gud' is not a git command.")
-
-        elif message.content.startswith("<@!"+str(bot.user.id)+">") or message.content.startswith("<@"+str(bot.user.id)+">") or (message.content.split(" ")[0].lower() in botNames):
-            await botMentioned(message)
-
-        else:
-            for i in message.content.split():
-                if i in ["69", "420"]:
-                    await message.channel.send("Nice.")
-                    break
-                elif i.lower() in ["pogchamp", "poggers", "pogger", "pogging", "pog"]:
-                    await message.channel.send(random.choice(["Pog", "Poggers", "Pogger", "PogChamp", "Pogging", "This is poggers", "This is very poggers"]))
-                    break
-    except discord.errors.Forbidden:
-        pass
-
-class botMentioned:
-    from help import help
-    from btec import unit
-    from stuff import good, bad, hi, hey, hello, say, gun, kill, pogchamp, porn, __admin__
-    from stats import stats
-    from crypto import crypto
-    from reddit import reddit, redditv2
-
-    async def __new__(self, message):
-        command = message.content.strip()
-        while "__" in command: command = command.replace("__", "")
-        while "  " in command: command = command.replace("  ", " ")
-        command = command.split()
-
-
-        if len(command) >= 2:
-            if command[1] in ["!", "sudo", "$", "#"]:
-                return await self.__admin__(message, command, self)
-            if command[1].startswith("r/"):
-                command[1:2] = ["reddit", command[1][2:]]
-            if command[1].startswith("u/") and len(command[1]) > 3:
-                command[1:2] = ["reddit", "u_" + command[1][2:]]
-
-        try:
-            commandattr = getattr(self, command[1].lower())
-        except AttributeError:
-            await self.__command_not_found__(message, command)
-            return
-        except IndexError:
-            await self.__command_not_found__(message, command)
-            return
-        except Exception as e:
-            await message.channel.send("something went wrong:\n"+str(e))
-            return
-        try:
-            try:
-                if commandattr.typing: await message.channel.trigger_typing()
-            except: await message.channel.trigger_typing()
-            await commandattr(message, command, self)
-        except IndexError:
-            await self.__command_not_found__(message, command)
-        except Exception as e:
-            await message.channel.send("something went wrong:\n"+str(e))
-
-    class __command_not_found__:
-        noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?"]
-        commandNotFound = ["what do you mean {message}"]
-        async def __new__(self, message, command):
-            if len(command) < 2:
-                await message.channel.send(random.choice(self.noCommandSpecified))
-            else:
-                await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified)
-                    .format(message = ' '.join(command[1:])))
-
-    async def __long_send__(message, embed):
-        await message.channel.send(embed=embed)
-        ## TODO: handle description being above 2048 chars
-
-    def __embedColor__():
-        return random.choice([0xFF0000, 0x00FF00, 0x0000FF])
-
-    def __bot__():
-        global bot
-        return bot
-
-def startThreads(loop, threads):
-    for thread in threads:
-        loop.create_task(thread)
-
-print("Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__)
-
-threads = [botMentioned.unit.setup(botMentioned.unit),
-    botMentioned.reddit.loadRecentSubmissions(botMentioned.reddit)]
-startThreads(asyncio.get_event_loop(), threads)
-bot.run(token, reconnect=True)
-print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Closing")
-
-loop = asyncio.new_event_loop()
-loop.run_until_complete(asyncio.wait([botMentioned.reddit.prawInstance.close(), botMentioned.reddit.saveRecentSubmissions(botMentioned.reddit)]))
-loop.close()
-
-print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Closed")
+# print("Closing", flush=True)
+# loop = asyncio.new_event_loop()
+# loop.run_until_complete(asyncio.wait([botMentioned.reddit.prawInstance.close(), botMentioned.reddit.saveRecentSubmissions(botMentioned.reddit)]))
+# loop.close()
