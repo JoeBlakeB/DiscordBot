@@ -42,12 +42,12 @@ class bot:
             for moduleClass in dir(module):
                 try:
                     moduleClass = getattr(module, moduleClass)
+                    startTasks += moduleClass.startTasks
+                    closeTasks += moduleClass.closeTasks
                     for command in moduleClass.mentionedCommands:
                         mentionedCommands[re.compile(command)] = moduleClass.mentionedCommands[command]
                     for command in moduleClass.exclamationCommands:
                         exclamationCommands[re.compile(command)] = moduleClass.exclamationCommands[command]
-                    startTasks += moduleClass.startTasks
-                    closeTasks += moduleClass.closeTasks
                 except AttributeError: pass
 
     mentionedCommandsList = list(mentionedCommands)
@@ -74,6 +74,8 @@ class bot:
         for arg in commandData[1]:
             if arg == "message":
                 kwargs[arg] = message
+            elif arg == "typing":
+                await message.channel.trigger_typing()
 
         await commandData[0](**kwargs)
 
@@ -90,6 +92,7 @@ async def on_member_remove(member):
 @bot.client.event
 async def on_ready():
     print("Logged in as {0.user}".format(bot.client), flush=True)
+    bot.modules.status.status.bot = bot
 
 @bot.client.event
 async def on_message(message):
@@ -133,6 +136,6 @@ bot.client.run(token, reconnect=True)
 # Close
 
 print("Closing", flush=True)
-loop = asyncio.new_event_loop()
-loop.run_until_complete(asyncio.wait(bot.closeTasks))
-loop.close()
+#loop = asyncio.new_event_loop()
+#loop.run_until_complete(asyncio.wait(bot.closeTasks))
+#loop.close()
