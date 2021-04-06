@@ -1,9 +1,7 @@
-import emojis
-import random
-
 class baseClass:
     mentionedCommands = {}
     exclamationCommands = {}
+    startTasks = []
+    closeTasks = []
 
-    async def __new__(self, message, text):
-        await message.channel.send(text)
+# example.mentionedCommands[regex, example: "test(?!\S)"] = [example.function, [args, example: "message"], {kwargs, examples: "self":test, "text":"<:hoodcateHD:822937932464914494>"}]

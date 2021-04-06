@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-import discord
 import asyncio
-import traceback
+import discord
+import random
+import re
 import sys
-import time
+import traceback
 
-import keys
 from emojis import emojis
+from userJoinLeave import userJoinLeave
+import keys
 
 # Get Discord token
 
@@ -23,6 +25,7 @@ except:
         exit(1)
 
 # Create bot
+
 class bot:
     intents = discord.Intents.default()
     intents.members = True
@@ -31,23 +34,41 @@ class bot:
     import modules
     mentionedCommands = {}
     exclamationCommands = {}
+    startTasks = []
+    closeTasks = []
     for module in dir(modules):
         if not module[:2] == "__":
             module = getattr(modules, module)
             for moduleClass in dir(module):
                 try:
-                    mentionedCommands = getattr(module, moduleClass).mentionedCommands
-#                    print(getattr(module, moduleClass).exclamationCommands)
+                    moduleClass = getattr(module, moduleClass)
+                    for command in moduleClass.mentionedCommands:
+                        mentionedCommands[re.compile(command)] = moduleClass.mentionedCommands[command]
+                    for command in moduleClass.exclamationCommands:
+                        exclamationCommands[re.compile(command)] = moduleClass.exclamationCommands[command]
+                    startTasks += moduleClass.startTasks
+                    closeTasks += moduleClass.closeTasks
                 except AttributeError: pass
 
     mentionedCommandsList = list(mentionedCommands)
-#    exclamationCommandsList = list(exclamationCommands)
+    exclamationCommandsList = list(exclamationCommands)
 
-    async def runCommand(message, command, exclamation=False):
-        if exclamation:
-            commandData = bot.exclamationCommands[command]
+    noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", emojis["HoodCate"], emojis["HoodCateHD"]]
+    commandNotFound = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
+
+    async def commandNotFound(self, message):
+        if len(message.content.split()) < 2:
+            await message.channel.send(random.choice(self.noCommandSpecified))
         else:
+            await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified).format(message))
+
+    async def runCommand(message, command, mentioned=True):
+        if command == None:
+            commandData = [bot.commandNotFound, ["message"], {"self":bot}]
+        elif mentioned:
             commandData = bot.mentionedCommands[command]
+        else:
+            commandData = bot.exclamationCommands[command]
 
         kwargs = commandData[2]
         for arg in commandData[1]:
@@ -60,11 +81,11 @@ class bot:
 
 @bot.client.event
 async def on_member_join(member):
-    pass # await userJoinLeave(member, True)
+    await userJoinLeave(member, True)
 
 @bot.client.event
 async def on_member_remove(member):
-    pass # await userJoinLeave(member, False)
+    await userJoinLeave(member, False)
 
 @bot.client.event
 async def on_ready():
@@ -76,28 +97,42 @@ async def on_message(message):
         messageContentLower = message.content.lower()
         if messageContentLower.startswith(message.channel.guild.me.display_name.lower()) and not message.author.bot:
             messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
+        if message.clean_content.startswith("@JoeBot") and not message.author.bot:
+            messageContentLower = "joebot" + message.clean_content[7:].lower()
+        if message.clean_content.startswith("@"+message.channel.guild.me.display_name) and not message.author.bot:
+            messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
 
-        if messageContentLower.split(" ")[0] == "joebot" and not message.author.bot:
-            messageCommand = messageContentLower[7:]
-            for command in bot.mentionedCommandsList:
-                if command.split(" ") == 1:
-                    if command == messageCommand.split(" ")[0]:
-                        await bot.runCommand(message, command)
-                else:
-                    if messageCommand.startswith(command+" ") or messageCommand == command:
-                        await bot.runCommand(message, command)
+        if (messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!") and not message.author.bot:
+            if messageContentLower.split(" ")[0] == "joebot":
+                messageCommand = messageContentLower[7:]
+                commandList = bot.mentionedCommandsList
+            else:
+                messageCommand = messageContentLower[1:]
+                commandList = bot.exclamationCommandsList
+
+            for command in commandList:
+                if command.match(messageCommand):
+                    await bot.runCommand(message, command, bool(messageContentLower.split(" ")[0] == "joebot"))
+                    break
+            else:
+                if messageContentLower.split(" ")[0] == "joebot":
+                    message.content = messageContentLower[7:]
+                    await bot.runCommand(message, None)
+    except IndexError: pass
     except:
         await message.channel.send("<@365154655313068032> " + traceback.format_exc())
 
 # Start
 
 print("Starting JoeBot with Python Version " + sys.version[:5] + " and Discord Version " + discord.__version__, flush=True)
-# asyncio.get_event_loop().create_task(thread)
+eventLoop = asyncio.get_event_loop()
+for task in bot.startTasks:
+    eventLoop.create_task(task)
 bot.client.run(token, reconnect=True)
 
 # Close
 
-# print("Closing", flush=True)
-# loop = asyncio.new_event_loop()
-# loop.run_until_complete(asyncio.wait([botMentioned.reddit.prawInstance.close(), botMentioned.reddit.saveRecentSubmissions(botMentioned.reddit)]))
-# loop.close()
+print("Closing", flush=True)
+loop = asyncio.new_event_loop()
+loop.run_until_complete(asyncio.wait(bot.closeTasks))
+loop.close()
