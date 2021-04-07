@@ -54,13 +54,13 @@ class bot:
     exclamationCommandsList = list(exclamationCommands)
 
     noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", emojis["HoodCate"], emojis["HoodCateHD"]]
-    commandNotFound = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
+    commandNotFoundList = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
 
     async def commandNotFound(self, message):
-        if len(message.content.split()) < 2:
+        if len(message.content.split()) <= 2:
             await message.channel.send(random.choice(self.noCommandSpecified))
         else:
-            await message.channel.send(random.choice(self.commandNotFound + self.noCommandSpecified).format(message))
+            await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message))
 
     async def runCommand(message, command, mentioned=True):
         if command == None:
@@ -97,15 +97,16 @@ async def on_ready():
 @bot.client.event
 async def on_message(message):
     try:
+        if message.author.bot: return
         messageContentLower = message.content.lower()
-        if messageContentLower.startswith(message.channel.guild.me.display_name.lower()) and not message.author.bot:
+        if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
             messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
-        if message.clean_content.startswith("@JoeBot") and not message.author.bot:
+        if message.clean_content.startswith("@JoeBot"):
             messageContentLower = "joebot" + message.clean_content[7:].lower()
-        if message.clean_content.startswith("@"+message.channel.guild.me.display_name) and not message.author.bot:
+        if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
             messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
 
-        if (messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!") and not message.author.bot:
+        if messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!":
             if messageContentLower.split(" ")[0] == "joebot":
                 messageCommand = messageContentLower[7:]
                 commandList = bot.mentionedCommandsList
@@ -136,6 +137,6 @@ bot.client.run(token, reconnect=True)
 # Close
 
 print("Closing", flush=True)
-#loop = asyncio.new_event_loop()
-#loop.run_until_complete(asyncio.wait(bot.closeTasks))
-#loop.close()
+loop = asyncio.new_event_loop()
+loop.run_until_complete(asyncio.wait(bot.closeTasks))
+loop.close()
