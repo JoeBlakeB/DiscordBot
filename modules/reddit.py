@@ -53,10 +53,25 @@ class reddit(baseClass.baseClass):
     async def user(self, message):
         return await message.add_reaction("❌")
 
-    async def url(self, message):
-        bruh = time.time()
-        submission = await self.prawInstance.submission(id=message.content.split(" ")[-1])
-        print(time.time()-bruh)
+    async def url(self, message, messageContentLower, exclamation):
+        try:
+            # get id from url
+            messageContentLower = messageContentLower[7-(6*int(exclamation)):]
+            messageContentLower = messageContentLower.replace("https://", "").replace("http://", "").replace("www.", "")
+            if messageContentLower[:8] == "redd.it/":
+                submissionID = messageContentLower[8:]
+            else:
+                submissionID = messageContentLower.split("/comments/")[1].split("/")[0]
+            # get post from id
+            submission = await self.prawInstance.submission(submissionID)
+
+            await message.edit(suppress=True)
+        except asyncprawcore.exceptions.NotFound:
+            try:
+                for emoji in "⚠️", "4️⃣", "0️⃣", emojis["Four"]:
+                    await message.add_reaction(emoji)
+                return
+            except Exception: pass
         await self.postSubmission(self, message, submission)
 
     async def postSubmission(self, message, submission):
@@ -109,6 +124,7 @@ class reddit(baseClass.baseClass):
             queryExtra = ""
 
         if submission.is_self and submission.selftext != "": # Text post
+            print(submission.selftext)
             if spoiler:
                 submissionData = "\n> " + spoilerText + submission.selftext.replace("\n", "\n> ").replace("|", "¦") + spoilerText
             else:
@@ -166,9 +182,9 @@ class reddit(baseClass.baseClass):
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
-reddit.mentionedCommands["(https:\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message"], {"self":reddit}]
+reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
 reddit.exclamationCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
 reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
-reddit.exclamationCommands["(https:\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message"], {"self":reddit}]
+reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
 reddit.closeTasks += [reddit.prawInstance.close()]

@@ -62,10 +62,10 @@ class bot:
         else:
             await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message))
 
-    async def runCommand(message, command, mentioned=True):
+    async def runCommand(message, command=None, messageContentLower=""):
         if command == None:
             commandData = [bot.commandNotFound, ["message"], {"self":bot}]
-        elif mentioned:
+        elif bool(messageContentLower.split(" ")[0] == "joebot"):
             commandData = bot.mentionedCommands[command]
         else:
             commandData = bot.exclamationCommands[command]
@@ -74,10 +74,16 @@ class bot:
         for arg in commandData[1]:
             if arg == "message":
                 kwargs[arg] = message
+            elif arg == "messageContentLower":
+                kwargs[arg] = messageContentLower
             elif arg == "typing":
                 await message.channel.trigger_typing()
 
-        await commandData[0](**kwargs)
+        try:
+            await commandData[0](**kwargs)
+        except Exception:
+            print(traceback.format_exc(), flush=True)
+            await message.add_reaction("⚠️")
 
 # Events
 
@@ -116,15 +122,15 @@ async def on_message(message):
 
             for command in commandList:
                 if command.match(messageCommand):
-                    await bot.runCommand(message, command, bool(messageContentLower.split(" ")[0] == "joebot"))
+                    await bot.runCommand(message, command, messageContentLower)
                     break
-            else:
+            else: # if no command found but joebot mentioned
                 if messageContentLower.split(" ")[0] == "joebot":
                     message.content = messageContentLower[7:]
-                    await bot.runCommand(message, None)
+                    await bot.runCommand(message)
     except IndexError: pass
-    except:
-        await message.channel.send("<@365154655313068032> " + traceback.format_exc())
+    except Exception:
+        print(traceback.format_exc(), flush=True)
 
 # Start
 
