@@ -124,13 +124,48 @@ class reddit(baseClass.baseClass):
             queryExtra = ""
 
         if submission.is_self and submission.selftext != "": # Text post
-            print(submission.selftext)
+            submissionBody = "\n> \n> " + submission.selftext.replace("\n", "\n> ")
+            if hasattr(submission, "poll_data"): # Poll post
+                pollLink = "https://www.reddit.com/poll/"+submission.id
+                submissionBody = submissionBody.replace(f"\n> \n> [View Poll]({pollLink})", "")
+                if submissionBody == "\n> \n> ": submissionBody = ""
+                pollData = "\n> "
+                open = datetime.datetime.utcnow().timestamp() < submission.poll_data.voting_end_timestamp/1000
+                try:
+                    options = {}
+                    highestCount = 0
+                    voteCounts = ""
+                    for option in submission.poll_data.options:
+                        options[option] = option.vote_count
+                        if option.vote_count > highestCount:
+                            highestCount = option.vote_count
+                    maxVoteLine = (submission.poll_data.total_vote_count*(.5-(len(options)/12))) + (highestCount*(.5+(len(options)/12)))
+                    for option in options:
+                        voteCounts += f"\n> **{option}**: {options[option]}\n```" + "yaml"*(highestCount==options[option]) + "\n"
+                        voteBlocks = int((options[option] / maxVoteLine) * 240)
+                        if options[option] == 1: voteBlocks = 1
+                        if options[option] == highestCount: voteBlocks += 2
+                        optionVoteLine = "█" * int((voteBlocks-(voteBlocks%8))/8)
+                        optionVoteLine += "█▏▎▍▌▋▊▉"[voteBlocks%8]
+                        optionVoteLine += " " * (30-len(optionVoteLine))
+                        voteCounts += "|" + optionVoteLine + "|\n```"
+                except AttributeError:
+                    pollData += "\n> Error getting the option vote counts" + " as the vote has not closed yet"*int(open) + "."
+                else:
+                    pollData += voteCounts
+                pollData += f"\n> Total Votes: {submission.poll_data.total_vote_count}"
+                pollData += "\n> " + pollLink + "\n> Voting " + ("closing" * int(open)) + ("closed" * int(not open)) + " at " + time.ctime(submission.poll_data.voting_end_timestamp/1000)
+            else: # Regular text post
+                pollData = ""
+
             if spoiler:
-                submissionData = "\n> " + spoilerText + submission.selftext.replace("\n", "\n> ").replace("|", "¦") + spoilerText
+                submissionData = spoilerText + submissionBody.replace("|", "¦") + spoilerText
             else:
-                submissionData = "\n> " + submission.selftext.replace("\n", "\n> ")
-            if len(submissionMetadata) + len(submissionData) > 2000:
-                submissionData = submissionData[:1956-len(submissionMetadata)] + spoilerText + "\n> (Discord max character limit reached)"
+                submissionData = submissionBody
+            if len(submissionMetadata) + len(submissionData) + len(pollData) > 2000:
+                submissionData = submissionData[:1956-(len(submissionMetadata)+len(pollData))] + spoilerText + "\n> (Discord max character limit reached)" + pollData
+            else:
+                submissionData += pollData
         elif submission.url.startswith("https://www.reddit.com/gallery/"): # reddit galleries
             try:
                 postJson = await self.postJson(f"https://www.reddit.com{submission.permalink}.json")
