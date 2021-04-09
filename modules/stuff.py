@@ -4,15 +4,7 @@ import random
 import baseClass
 from emojis import emojis
 
-class stuff(baseClass.baseClass):
-    async def autoDelete(message, time=3):
-        try:
-            await message.add_reaction("✅")
-            await asyncio.sleep(time)
-            await message.delete()
-        except:
-            pass
-
+class stuff(baseClass.baseClass, baseClass.baseUtils):
     async def say(message):
         messageContent = "say ".join(message.content.split("say ")[1:])
         if len(messageContent) >= 128:
@@ -35,7 +27,7 @@ class stuff(baseClass.baseClass):
                 sayContent += messageContent[i]
         await message.channel.send(sayContent)
         print(str(message.author)+" said \"" + sayContent + "\"", flush=True)
-        await stuff.autoDelete(message)
+        await stuff.deleteMessage(message)
 
     async def kill(message):
         whoToKill = "kill ".join(message.content.split("kill ")[1:]).split(" as ")[0]
@@ -50,7 +42,7 @@ class stuff(baseClass.baseClass):
 
         await message.channel.send(murderer + gun + whoToKill)
         print(str(message.author)+" killed \"" + whoToKill + "\"", flush=True)
-        await stuff.autoDelete(message)
+        await stuff.deleteMessage(message)
 
     bitlyUrls = ["3chJDM7", "3t3GQvM", "36gTVIs", "36kYhyj", "2KWKKWh", "2MeJUVt", "3iVIj2F", "2YpG522",
         "2NIS6Oa", "2Yl6zBI", "3qVKCFR", "3iVUpJc", "3j6gXap", "3ae9aD1", "2YkFTRB", "3cic5xi",
