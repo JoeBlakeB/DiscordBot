@@ -3,6 +3,7 @@ import asyncpraw, asyncprawcore
 import datetime
 import discord
 import json
+import re
 import time
 
 import baseClass
@@ -74,13 +75,13 @@ class reddit(baseClass.baseClass):
             except Exception: pass
         await self.postSubmission(self, message, submission)
 
-    async def postSubmission(self, message, submission):
+    async def postSubmission(self, message, submission, crosspost=False, forceSpoiler=False):
         title = "**" + submission.title + "**"
         try:
             author = "r/" + submission.subreddit.display_name + " • u/" + submission.author.name
         except AttributeError:
             author = "r/" + submission.subreddit.display_name + " • u/[DELETED]"
-        spoiler = False
+        spoiler = forceSpoiler
         extras = []
         if submission.spoiler:
             extras += ["**SPOILER**"]
@@ -123,6 +124,9 @@ class reddit(baseClass.baseClass):
             spoilerText = ""
             queryExtra = ""
 
+        if not hasattr(submission, "post_hint"):
+            submission.post_hint = "None"
+
         if submission.is_self and submission.selftext != "": # Text post
             submissionBody = "\n> \n> " + submission.selftext.replace("\n", "\n> ")
             if hasattr(submission, "poll_data"): # Poll post
@@ -141,14 +145,13 @@ class reddit(baseClass.baseClass):
                             highestCount = option.vote_count
                     maxVoteLine = (submission.poll_data.total_vote_count*(.5-(len(options)/12))) + (highestCount*(.5+(len(options)/12)))
                     for option in options:
-                        voteCounts += f"\n> **{option}**: {options[option]}\n```" + "yaml"*(highestCount==options[option]) + "\n"
+                        voteCounts += f"\n> **{option}**: {options[option]}\n> "
                         voteBlocks = int((options[option] / maxVoteLine) * 240)
                         if options[option] == 1: voteBlocks = 1
                         if options[option] == highestCount: voteBlocks += 2
                         optionVoteLine = "█" * int((voteBlocks-(voteBlocks%8))/8)
                         optionVoteLine += "█▏▎▍▌▋▊▉"[voteBlocks%8]
-                        optionVoteLine += " " * (30-len(optionVoteLine))
-                        voteCounts += "|" + optionVoteLine + "|\n```"
+                        voteCounts += optionVoteLine
                 except AttributeError:
                     pollData += "\n> Error getting the option vote counts" + " as the vote has not closed yet"*int(open) + "."
                 else:
@@ -194,14 +197,28 @@ class reddit(baseClass.baseClass):
             except Exception as e:
                 e = e.replace("\n", "\n> ")
                 submissionData = f"\n> {e}\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
+        elif submission.url == "https://www.reddit.com" + submission.permalink: # Nothing, should never be used
+            submissionData = ""
+        elif re.match("https:\/\/www.reddit.com\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submission.url) and not crosspost: # Crossposts
+            try:
+                submissionID = submission.url.split("/comments/")[1].split("/")[0]
+                submission = await self.prawInstance.submission(submissionID)
+                crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
+                crosspostLink = f"\n> \n> Crosspost: <https://redd.it/{submissionID}>\n"
+                if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
+                    submissionData = crosspostLink + crosspostData[:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
+                else:
+                    submissionData = crosspostLink + crosspostData
+            except asyncprawcore.exceptions.NotFound:
+                submissionData = f"\n> \n> HTTP error 404 while getting crosspost.\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
         else: # Other links
-            if submission.url != "https://www.reddit.com" + submission.permalink:
-                submissionData = f"\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
-            else:
-                submissionData = ""
+            submissionData = f"\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
 
-        await message.channel.send(submissionMetadata + submissionData)
-        print(str(message.author)+" NSFW:" + str(submission.over_18) +" "+ submission.subreddit.display_name+" "+ submission.id)
+        if crosspost:
+            return submissionMetadata + submissionData
+        else:
+            await message.channel.send(submissionMetadata + submissionData)
+            print(str(message.author)+" NSFW:" + str(submission.over_18) +" "+ submission.subreddit.display_name+" "+ submission.id)
 
     async def postJson(url):
         async with aiohttp.ClientSession() as session:
