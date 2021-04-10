@@ -14,8 +14,6 @@ import keys
 # reddit: re route to subreddit, user, or url, fallback to r/all if none
 # subreddit
 # user
-# url: get id from url
-# postSubmission: support videos and galleries
 
 class reddit(baseClass.baseClass):
     try:
@@ -41,6 +39,7 @@ class reddit(baseClass.baseClass):
         return await message.add_reaction("❌")
 
     async def subreddit(self, message):
+        return await message.add_reaction("❌")
         print(time.time())
         subredditInstance = await self.prawInstance.subreddit("196")
         print(time.time())
@@ -49,7 +48,6 @@ class reddit(baseClass.baseClass):
             postIDs += [post.id]
         print(postIDs)
         print(time.time())
-        return await message.add_reaction("❌")
 
     async def user(self, message):
         return await message.add_reaction("❌")
@@ -231,12 +229,37 @@ class reddit(baseClass.baseClass):
                 try: return postJson[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
                 except: return postJson[0]["data"]["children"][0]["data"]
 
+# Use old post finder code till i have actually done the new one
+# legacyReddit.py (not commited) is reddit.py from before the rewrite
+# with only the prawInstance code removed
+import bz2
+import os
+import json
+from legacyReddit import reddit as oldReddit
+class legacyReddit(oldReddit):
+    postSubmission = reddit.postSubmission
+    postJson = reddit.postJson
+    prawInstance = reddit.prawInstance
+    async def subreddit(self, message, commandContent):
+        message.content = "joebot reddit " + commandContent
+        command = message.content.split(" ")
+        await self.__new__(self, message, command, None)
+
+    async def user(self, message, commandContent):
+        message.content = "joebot reddit " + commandContent
+        command = message.content.split(" ")
+        await self.__new__(self, message, command, None)
+
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
-reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
-reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
+reddit.mentionedCommands["new\/r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
+reddit.mentionedCommands["new\/u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
+reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
 reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
 reddit.exclamationCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
-reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
-reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
+reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
 reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
 reddit.closeTasks += [reddit.prawInstance.close()]
+reddit.startTasks += [legacyReddit.loadRecentSubmissions(legacyReddit)]
+reddit.closeTasks += [legacyReddit.saveRecentSubmissions(legacyReddit)]

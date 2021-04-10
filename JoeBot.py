@@ -65,10 +65,12 @@ class bot:
     async def runCommand(message, command=None, messageContentLower=""):
         if command == None:
             commandData = [bot.commandNotFound, ["message"], {"self":bot}]
-        elif bool(messageContentLower.split(" ")[0] == "joebot"):
-            commandData = bot.mentionedCommands[command]
         else:
-            commandData = bot.exclamationCommands[command]
+            mentioned = bool(messageContentLower.split(" ")[0] == "joebot")
+            if mentioned:
+                commandData = bot.mentionedCommands[command]
+            else:
+                commandData = bot.exclamationCommands[command]
 
         kwargs = commandData[2]
         for arg in commandData[1]:
@@ -76,6 +78,8 @@ class bot:
                 kwargs[arg] = message
             elif arg == "messageContentLower":
                 kwargs[arg] = messageContentLower
+            elif arg == "commandContent":
+                kwargs[arg] = messageContentLower[7-(6*int(not mentioned)):]
             elif arg == "typing":
                 await message.channel.trigger_typing()
 

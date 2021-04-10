@@ -57,17 +57,17 @@ class btec(baseClass.baseClass):
         else:
             description = ["summary", False]
 
-        if description[0] == "summary":
-            embed.description = "Viewing unit summary is work in progress"
-
-        elif description[0] in ["l", "o"]: # Learning Outcome
-            embed.description = "Viewing specific learning outcome is work in progress"
-
-        elif description[0] == "a": # Assignment
-            embed.description = "Viewing specific assignment is work in progress"
-
-        elif description[0] in ["p", "m", "d"]: # Grading Criteria
-            embed.description = "Viewing specific grading criteria is work in progress"
+        # if description[0] == "summary":
+        #     embed.description = "Viewing unit summary is work in progress"
+        #
+        # elif description[0] in ["l", "o"]: # Learning Outcome
+        #     embed.description = "Viewing specific learning outcome is work in progress"
+        #
+        # elif description[0] == "a": # Assignment
+        #     embed.description = "Viewing specific assignment is work in progress"
+        #
+        # elif description[0] in ["p", "m", "d"]: # Grading Criteria
+        #     embed.description = "Viewing specific grading criteria is work in progress"
 
         await message.channel.send(embed=embed)
 
