@@ -7,11 +7,13 @@ import sys
 import subprocess
 import platform
 import os
+import traceback
 try:
     import psutil
 except: pass
 
 import baseClass
+import modules.crypto
 
 songs = ["Cat", "Dog", "Door", "Living Mice", "Mice on Venus", "Moog City", "Subwoofer Lullaby", "Équinoxe",
          "Aria Math", "Blind Spots", "Blocks", "Chirp", "Dreiton", "Strad", "Taswell", "Wait", "Ward"]
@@ -23,11 +25,20 @@ class status(baseClass.baseClass):
             await asyncio.sleep(2)
         while True:
             try:
-                await status.bot.client.change_presence(activity=discord.Activity(name="C418 - "+random.choice(songs), type=2))
-                await asyncio.sleep(random.randint(200, 400))
+                dogeValue = round(status.bot.modules.crypto.crypto.getValue("doge") * 100, 2)
+                if dogeValue == 0:
+                    await status.bot.client.change_presence(activity=discord.Activity(name="C418 - "+random.choice(songs), type=2))
+                    sleepTill = time.time() + random.randint(200, 400)
+                else:
+                    await status.bot.client.change_presence(activity=discord.Activity(name="DOGE @ "+str(dogeValue)+"p 🚀🌑", type=3))
+                    sleepTill = time.time() + 1200
+                while True:
+                    await asyncio.sleep(20)
+                    if sleepTill < time.time():
+                        break
             except Exception:
                 print(traceback.format_exc())
-                await asyncio.sleep(300)
+                await asyncio.sleep(120)
 
     async def ping(message):
         pong = "Pong!"
