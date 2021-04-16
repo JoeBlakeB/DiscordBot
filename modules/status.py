@@ -26,12 +26,14 @@ class status(baseClass.baseClass):
         while True:
             try:
                 dogeValue = round(status.bot.modules.crypto.crypto.getValue("doge") * 100, 2)
+                if dogeValue > 10: dogeValue = round(dogeValue, 1)
+                if dogeValue > 100: dogeValue = int(dogeValue)
                 if dogeValue == 0:
                     await status.bot.client.change_presence(activity=discord.Activity(name="C418 - "+random.choice(songs), type=2))
                     sleepTill = time.time() + random.randint(200, 400)
                 else:
-                    await status.bot.client.change_presence(activity=discord.Activity(name="DOGE @ "+str(dogeValue)+"p 🚀🌑", type=3))
-                    sleepTill = time.time() + 1200
+                    await status.bot.client.change_presence(activity=discord.Activity(name="DOGE @"+str(dogeValue)+"p 🚀🌑", type=3))
+                    sleepTill = time.time() + 600
                 while True:
                     await asyncio.sleep(20)
                     if sleepTill < time.time():

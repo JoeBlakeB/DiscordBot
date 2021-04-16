@@ -92,5 +92,8 @@ class crypto(baseClass.baseClass):
             traceback.print_exc()
             return .72
 
-crypto.mentionedCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent"], {"self":crypto}]
-crypto.exclamationCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent"], {"self":crypto}]
+crypto.mentionedCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]
+crypto.exclamationCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]
+
+crypto.exclamationCommands["doge(coin|)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto doge"}]
+crypto.exclamationCommands["(btc|bitcoin)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto btc"}]

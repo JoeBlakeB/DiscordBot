@@ -112,15 +112,10 @@ class reddit(baseClass.baseClass):
 
         if spoiler:
             spoilerLink = "||"
-            spoilerText = "||"
-            if "?" in submission.url:
-                queryExtra = "&?"
-            else:
-                queryExtra = "?"
+            spoilerText = " ||"
         else:
             spoilerLink = "> "
             spoilerText = ""
-            queryExtra = ""
 
         if not hasattr(submission, "post_hint"):
             submission.post_hint = "None"
@@ -175,7 +170,7 @@ class reddit(baseClass.baseClass):
                     try: previewURL = postJson["media_metadata"][item["media_id"]]["s"]["u"]
                     except: previewURL = postJson["media_metadata"][item["media_id"]]["s"]["gif"]
                     imageUrl = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
-                    submissionData += f"\n{spoilerLink}{imageUrl}{queryExtra}{spoilerText}"
+                    submissionData += f"\n{spoilerLink}{imageUrl}{spoilerText}"
             except Exception as e:
                 e = e.replace("\n", "\n> ")
                 submissionData = f"\n> {e}"
@@ -189,12 +184,11 @@ class reddit(baseClass.baseClass):
                 if "?" in submissionData and spoiler: submissionData += "&?"
                 elif spoiler: submissionData += "?"
                 else:
-                    queryExtra = ""
                     submissionData = submissionData.split("?source=fallback")[0]
                 submissionData = f"\n{spoilerLink}{submissionData}{spoilerText}"
             except Exception as e:
                 e = e.replace("\n", "\n> ")
-                submissionData = f"\n> {e}\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
+                submissionData = f"\n> {e}\n{spoilerLink}{submission.url}{spoilerText}"
         elif submission.url == "https://www.reddit.com" + submission.permalink: # Nothing, should never be used
             submissionData = ""
         elif re.match("https:\/\/www.reddit.com\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submission.url) and not crosspost: # Crossposts
@@ -208,9 +202,9 @@ class reddit(baseClass.baseClass):
                 else:
                     submissionData = crosspostLink + crosspostData
             except asyncprawcore.exceptions.NotFound:
-                submissionData = f"\n> \n> HTTP error 404 while getting crosspost.\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
+                submissionData = f"\n> \n> HTTP error 404 while getting crosspost.\n{spoilerLink}{submission.url}{spoilerText}"
         else: # Other links
-            submissionData = f"\n{spoilerLink}{submission.url}{queryExtra}{spoilerText}"
+            submissionData = f"\n{spoilerLink}{submission.url}{spoilerText}"
 
         if crosspost:
             return submissionMetadata + submissionData
@@ -246,7 +240,8 @@ class legacyReddit(oldReddit):
         await self.__new__(self, message, command, None)
 
     async def user(self, message, commandContent):
-        message.content = "joebot reddit " + commandContent
+        message.content = "joebot reddit r/u_" + commandContent[2:]
+        print(message.content)
         command = message.content.split(" ")
         await self.__new__(self, message, command, None)
 
