@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# JoeBot Copyright (C) 2021 JoeBlakeB
+__author__ = "JoeBlakeB"
+__copyright__ = "Copyright 2021, JoeBlakeB (joeblakeb.github.io)"
+__credits__ = ["JoeBlakeB"]
+__license__ = "GPL"
 
 import asyncio
 import discord
