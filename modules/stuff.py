@@ -7,7 +7,7 @@ from emojis import emojis
 class stuff(baseClass.baseClass, baseClass.baseUtils):
     async def say(message):
         messageContent = "say ".join(message.content.split("say ")[1:])
-        if len(messageContent) >= 128:
+        if len(messageContent) >= 256:
             return await message.add_reaction("❌")
         sayContent = ""
         emojiName = None
@@ -17,7 +17,7 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
                     sayContent = sayContent[:(-1)-len(emojiName)] + emojis[emojiName]
                 else:
                     emojiName += ":"
-                emojiName = False
+                emojiName = None
             elif emojiName == None and messageContent[i] == ":":
                 emojiName = ""
                 sayContent += messageContent[i]

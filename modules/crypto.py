@@ -82,7 +82,7 @@ class crypto(baseClass.baseClass):
 
     def exchangeRate():
         try:
-            if crypto.lastGotRate + 7200 < time.time():
+            if crypto.lastGotRate + 86400 < time.time():
                 response = requests.get("http://data.fixer.io/api/latest?access_key=" + crypto.fixerIoAccessKey)
                 exchangeRate = response.json()
                 return exchangeRate["rates"]["GBP"] / exchangeRate["rates"]["USD"]

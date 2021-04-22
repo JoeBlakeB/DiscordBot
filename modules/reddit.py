@@ -58,7 +58,7 @@ class reddit(baseClass.baseClass):
             messageContentLower = messageContentLower[7-(6*int(exclamation)):]
             messageContentLower = messageContentLower.replace("https://", "").replace("http://", "").replace("www.", "")
             if messageContentLower[:8] == "redd.it/":
-                submissionID = messageContentLower[8:]
+                submissionID = messageContentLower[8:].split(" ")[0]
             else:
                 submissionID = messageContentLower.split("/comments/")[1].split("/")[0]
             # get post from id
