@@ -110,7 +110,7 @@ class status(baseClass.baseClass):
         embed.description = "```"+output[:1990]+"```"
         await message.channel.send(embed=embed)
 
-status.startTasks = [status.presence()]
+status.startTasks += [status.presence()]
 
 status.mentionedCommands["ping(?!\S)"] = [status.ping, ["message"], {}]
 status.exclamationCommands["ping(?!\S)"] = [status.ping, ["message"], {}]

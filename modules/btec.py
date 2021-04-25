@@ -91,4 +91,4 @@ class btec(baseClass.baseClass):
 
 btec.mentionedCommands["unit(?!\S)"] = [btec.unit, ["message", "messageContentLower"], {"self":btec}]
 btec.exclamationCommands["unit(?!\S)"] = [btec.unit, ["message", "messageContentLower"], {"self":btec}]
-btec.startTasks = [btec.setup(btec)]
+btec.startTasks += [btec.setup(btec)]

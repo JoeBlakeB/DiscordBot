@@ -31,32 +31,18 @@ except:
 
 # Create bot
 
-class bot:
+from modules import baseClass
+class bot(baseClass.baseClass):
     intents = discord.Intents.default()
     intents.members = True
     client = discord.Client(intents=intents)
 
-    import modules
-    mentionedCommands = {}
-    exclamationCommands = {}
-    startTasks = []
-    closeTasks = []
-    for module in dir(modules):
-        if not module[:2] == "__":
-            module = getattr(modules, module)
-            for moduleClass in dir(module):
-                try:
-                    moduleClass = getattr(module, moduleClass)
-                    startTasks += moduleClass.startTasks
-                    closeTasks += moduleClass.closeTasks
-                    for command in moduleClass.mentionedCommands:
-                        mentionedCommands[re.compile(command)] = moduleClass.mentionedCommands[command]
-                    for command in moduleClass.exclamationCommands:
-                        exclamationCommands[re.compile(command)] = moduleClass.exclamationCommands[command]
-                except AttributeError: pass
-
-    mentionedCommandsList = list(mentionedCommands)
-    exclamationCommandsList = list(exclamationCommands)
+    mentionedCommandsList = []
+    for command in list(baseClass.baseClass.mentionedCommands):
+        mentionedCommandsList += [re.compile(command)]
+    exclamationCommandsList = []
+    for command in list(baseClass.baseClass.exclamationCommands):
+        exclamationCommandsList += [re.compile(command)]
 
     noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", emojis["HoodCate"], emojis["HoodCateHD"]]
     commandNotFoundList = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
@@ -67,15 +53,17 @@ class bot:
         else:
             await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message))
 
-    async def runCommand(message, command=None, messageContentLower=""):
+    async def runCommand(message, command=None, messageContentLower="", generalCommands=False):
         if command == None:
             commandData = [bot.commandNotFound, ["message"], {"self":bot}]
+        elif generalCommands:
+            commandData = command[2:]
         else:
             mentioned = bool(messageContentLower.split(" ")[0] == "joebot")
             if mentioned:
-                commandData = bot.mentionedCommands[command]
+                commandData = bot.mentionedCommands[command.pattern]
             else:
-                commandData = bot.exclamationCommands[command]
+                commandData = bot.exclamationCommands[command.pattern]
 
         kwargs = commandData[2]
         for arg in commandData[1]:
@@ -107,12 +95,14 @@ async def on_member_remove(member):
 @bot.client.event
 async def on_ready():
     print("Logged in as {0.user}".format(bot.client), flush=True)
-    bot.modules.status.status.bot = bot
+    import modules.status
+    modules.status.status.bot = bot
 
 @bot.client.event
 async def on_message(message):
     try:
-        if message.author.bot: return
+        if len(message.content) == 0: return
+
         messageContentLower = message.content.lower()
         if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
             messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
@@ -121,7 +111,8 @@ async def on_message(message):
         if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
             messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
 
-        if messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!":
+        # mentionedCommands & exclamationCommands
+        if (messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!") and not message.author.bot:
             if messageContentLower.split(" ")[0] == "joebot":
                 messageCommand = messageContentLower[7:]
                 commandList = bot.mentionedCommandsList
@@ -137,6 +128,12 @@ async def on_message(message):
                 if messageContentLower.split(" ")[0] == "joebot":
                     message.content = messageContentLower[7:]
                     await bot.runCommand(message)
+        # generalCommands
+        else:
+            for command in bot.generalCommands:
+                if command[0] == "authorID":
+                    if command[1] == message.author.id:
+                        await bot.runCommand(message, command, messageContentLower, generalCommands=True)
     except IndexError: pass
     except Exception:
         print(traceback.format_exc(), flush=True)
