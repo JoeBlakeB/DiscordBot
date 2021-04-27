@@ -25,7 +25,7 @@ class status(baseClass.baseClass):
             await asyncio.sleep(2)
         while True:
             try:
-                dogeValue = round(status.bot.modules.crypto.crypto.getValue("doge") * 100, 2)
+                dogeValue = round(modules.crypto.crypto.getValue("doge") * 100, 2)
                 if dogeValue > 10: dogeValue = round(dogeValue, 1)
                 if dogeValue > 100: dogeValue = int(dogeValue)
                 if dogeValue == 0:

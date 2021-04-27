@@ -33,6 +33,8 @@ except:
 
 from modules import baseClass
 class bot(baseClass.baseClass):
+    useExclamationCommands = [796434329831604284, 643102110375870475] # JoeBot Test Server, Team HQ
+
     intents = discord.Intents.default()
     intents.members = True
     client = discord.Client(intents=intents)
@@ -111,8 +113,14 @@ async def on_message(message):
         if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
             messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
 
+        try:
+            enableExclamationCommands = bool(message.guild.id in bot.useExclamationCommands)
+        except:
+            enableExclamationCommands = True
+
         # mentionedCommands & exclamationCommands
-        if (messageContentLower.split(" ")[0] == "joebot" or messageContentLower[0] == "!") and not message.author.bot:
+        if not message.author.bot and (messageContentLower.split(" ")[0] == "joebot" or
+            (messageContentLower[0] == "!" and enableExclamationCommands)):
             if messageContentLower.split(" ")[0] == "joebot":
                 messageCommand = messageContentLower[7:]
                 commandList = bot.mentionedCommandsList
@@ -137,6 +145,14 @@ async def on_message(message):
     except IndexError: pass
     except Exception:
         print(traceback.format_exc(), flush=True)
+
+@bot.client.event
+async def on_reaction_add(reaction, user):
+    if "> <https://redd.it/" in reaction.message.content and reaction.message.author.id == 796433833296658442 and reaction.emoji == "🔄":
+        messageContent = str(reaction.message.content)
+        await reaction.message.edit(content="<:hoodcate2:803666598526320690><a:teatime:834903558599213057>")
+        await asyncio.sleep(5)
+        await reaction.message.edit(content=messageContent)
 
 # Start
 

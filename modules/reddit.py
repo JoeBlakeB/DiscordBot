@@ -36,21 +36,24 @@ class reddit(baseClass.baseClass):
     # {"UserID|ServerID":["BannedUntilTimestamp", NSFW:True]}
 
     async def reddit(self, message):
-        return await message.add_reaction("❌")
+        return await message.add_reaction("<:amogus:811622676783169536>")
 
     async def subreddit(self, message):
-        return await message.add_reaction("❌")
-        print(time.time())
+        return await message.add_reaction("<:amogus:811622676783169536>")
+        print(time.time(), flush=True)
         subredditInstance = await self.prawInstance.subreddit("196")
-        print(time.time())
+        print(time.time(), flush=True)
+        lastTime = time.time()
         postIDs = []
-        async for post in subredditInstance.hot(limit=16):
+        async for post in subredditInstance.hot(limit=256):
+            print(time.time()-lastTime, post.id)
+            lastTime = time.time()
             postIDs += [post.id]
-        print(postIDs)
-        print(time.time())
+        print(postIDs, flush=True)
+        print(time.time(), flush=True)
 
     async def user(self, message):
-        return await message.add_reaction("❌")
+        return await message.add_reaction("<:amogus:811622676783169536>")
 
     async def url(self, message, messageContentLower, exclamation):
         try:

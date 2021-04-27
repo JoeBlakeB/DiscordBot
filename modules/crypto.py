@@ -76,7 +76,7 @@ class crypto(baseClass.baseClass):
             traceback.print_exc()
             return 0
 
-    lastGotRate = 0
+    lastGotRate = time.time() - 85000
     oldRate = .72
     fixerIoAccessKey = keys.read("Fixer.io-Access-Key")
 
@@ -88,9 +88,11 @@ class crypto(baseClass.baseClass):
                 return exchangeRate["rates"]["GBP"] / exchangeRate["rates"]["USD"]
             else:
                 return crypto.oldRate
+        except KeyError:
+             pass
         except:
             traceback.print_exc()
-            return .72
+        return .72
 
 crypto.mentionedCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]
 crypto.exclamationCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]

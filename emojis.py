@@ -11,5 +11,10 @@ emojis = {
     "Upvote":       "<:upvote:829141166430748724>",
     "Coin":         "<:Coin:829274378881073174>",
     "Four":         "<:four:829673449110765598>",
-    "TeaTime":      "<a:teatime:834903558599213057>"
+    "TeaTime":      "<a:teatime:834903558599213057>",
+    "TeaTime2":     "<a:teatime2:835602583057203200>",
+    "Amogus":       "<:amogus:811622676783169536>",
+    "SidStare":     "<a:SidStare:822896085856157756>",
+    "CatStand":     "<:CatStand:814251218033180743>",
+    "TigerBoop":    "<a:tigerboop:808399700549697596>"
 }
