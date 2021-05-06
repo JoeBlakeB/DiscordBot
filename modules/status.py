@@ -59,7 +59,8 @@ class status(baseClass.baseClass):
     async def status(self, message):
         embed = discord.Embed()
         embed.title = "JoeBot Stats"
-        embed.description = "Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__
+        embed.description = "Developer: Joe#8648\n"
+        embed.description += "Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__
         embed.description += self.version()
         try:
             embed.description += "Server Count: " + str(len(status.bot.client.guilds))
@@ -68,9 +69,9 @@ class status(baseClass.baseClass):
 
         try:
             process = psutil.Process(os.getpid())
-            memory = "\nMemory Usage: " + str(int(process.memory_info().rss / (1024 ** 2))) + "MB\n"
-            cpu = "CPU Usage: " + str(process.cpu_percent(interval=None)) + "%"
-            embed.description += cpu + memory
+            memory = "Memory Usage: " + str(int(process.memory_info().rss / (1024 ** 2))) + "MB\n"
+            # cpu = "CPU Usage: " + str(process.cpu_percent(interval=None)) + "%\n"
+            embed.description += memory
         except NameError: pass
 
         try:
@@ -114,5 +115,5 @@ status.startTasks += [status.presence()]
 
 status.mentionedCommands["ping(?!\S)"] = [status.ping, ["message"], {}]
 status.exclamationCommands["ping(?!\S)"] = [status.ping, ["message"], {}]
-status.mentionedCommands["stat(us|s)(?!\S)"] = [status.status, ["message", "typing"], {"self":status}]
+status.mentionedCommands["(stat(us|s)|about|info)(?!\S)"] = [status.status, ["message", "typing"], {"self":status}]
 status.mentionedCommands["neofetch(?!\S)"] = [status.neofetch, ["message"], {"self":status}]

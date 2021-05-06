@@ -33,8 +33,6 @@ except:
 
 from modules import baseClass
 class bot(baseClass.baseClass):
-    useExclamationCommands = [796434329831604284, 643102110375870475] # JoeBot Test Server, Team HQ
-
     intents = discord.Intents.default()
     intents.members = True
     client = discord.Client(intents=intents)
@@ -50,7 +48,7 @@ class bot(baseClass.baseClass):
     commandNotFoundList = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
 
     async def commandNotFound(self, message):
-        if len(message.content.split()) <= 2:
+        if len(message.content.split(" ")) <= 2:
             await message.channel.send(random.choice(self.noCommandSpecified))
         else:
             await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message))
@@ -103,8 +101,6 @@ async def on_ready():
 @bot.client.event
 async def on_message(message):
     try:
-        if len(message.content) == 0: return
-
         messageContentLower = message.content.lower()
         if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
             messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
@@ -113,14 +109,9 @@ async def on_message(message):
         if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
             messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
 
-        try:
-            enableExclamationCommands = bool(message.guild.id in bot.useExclamationCommands)
-        except:
-            enableExclamationCommands = True
-
         # mentionedCommands & exclamationCommands
         if not message.author.bot and (messageContentLower.split(" ")[0] == "joebot" or
-            (messageContentLower[0] == "!" and enableExclamationCommands)):
+            (messageContentLower[0] == "!")):
             if messageContentLower.split(" ")[0] == "joebot":
                 messageCommand = messageContentLower[7:]
                 commandList = bot.mentionedCommandsList
@@ -143,6 +134,7 @@ async def on_message(message):
                     if command[1] == message.author.id:
                         await bot.runCommand(message, command, messageContentLower, generalCommands=True)
     except IndexError: pass
+    except discord.errors.Forbidden: pass
     except Exception:
         print(traceback.format_exc(), flush=True)
 

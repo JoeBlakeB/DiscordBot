@@ -66,8 +66,9 @@ class reddit(baseClass.baseClass):
                 submissionID = messageContentLower.split("/comments/")[1].split("/")[0]
             # get post from id
             submission = await self.prawInstance.submission(submissionID)
-
-            await message.edit(suppress=True)
+            try:
+                await message.edit(suppress=True)
+            except: pass
         except asyncprawcore.exceptions.NotFound:
             try:
                 for emoji in "⚠️", "4️⃣", "0️⃣", emojis["Four"]:

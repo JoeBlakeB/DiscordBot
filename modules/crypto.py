@@ -56,7 +56,10 @@ class crypto(baseClass.baseClass):
         embed.description += "\n\nAll Time High: £{:,.2f} at ".format(float(cryptoMetrics["data"]["all_time_high"]["price"]) * crypto.exchangeRate()) + cryptoMetrics["data"]["all_time_high"]["at"][:10]
         embed.description += "\nVolume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["volume_last_24_hours"] * crypto.exchangeRate())
         embed.description += "\nReal Volume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["real_volume_last_24_hours"] * crypto.exchangeRate())
-        embed.description += "\nPercent Change (1 hour): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_1_hour"],4))
+        try:
+            embed.description += "\nPercent Change (1 hour): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_1_hour"],4))
+        except:
+            pass
         embed.description += "\nPercent Change (24 hours): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_24_hours"],4))
         embed.description += "\nMarket Cap: £{:,.2f}".format(float(cryptoMetrics["data"]["marketcap"]["current_marketcap_usd"]) * crypto.exchangeRate())
 
@@ -72,6 +75,8 @@ class crypto(baseClass.baseClass):
             cryptoMetrics = response.json()
             value = float(cryptoMetrics["data"]["market_data"]["price_usd"]) * crypto.exchangeRate()
             return value
+        except requests.exceptions.ConnectionError:
+            return 0
         except:
             traceback.print_exc()
             return 0
