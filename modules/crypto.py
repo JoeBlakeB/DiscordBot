@@ -55,13 +55,22 @@ class crypto(baseClass.baseClass):
 
         embed.description += "\n\nAll Time High: £{:,.2f} at ".format(float(cryptoMetrics["data"]["all_time_high"]["price"]) * crypto.exchangeRate()) + cryptoMetrics["data"]["all_time_high"]["at"][:10]
         embed.description += "\nVolume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["volume_last_24_hours"] * crypto.exchangeRate())
-        embed.description += "\nReal Volume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["real_volume_last_24_hours"] * crypto.exchangeRate())
+        try:
+            embed.description += "\nReal Volume (24 hours): £{:,.2f}".format(cryptoMetrics["data"]["market_data"]["real_volume_last_24_hours"] * crypto.exchangeRate())
+        except:
+            pass
         try:
             embed.description += "\nPercent Change (1 hour): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_1_hour"],4))
         except:
             pass
-        embed.description += "\nPercent Change (24 hours): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_24_hours"],4))
-        embed.description += "\nMarket Cap: £{:,.2f}".format(float(cryptoMetrics["data"]["marketcap"]["current_marketcap_usd"]) * crypto.exchangeRate())
+        try:
+            embed.description += "\nPercent Change (24 hours): " + str(round(cryptoMetrics["data"]["market_data"]["percent_change_usd_last_24_hours"],4))
+        except:
+            pass
+        try:
+            embed.description += "\nMarket Cap: £{:,.2f}".format(float(cryptoMetrics["data"]["marketcap"]["current_marketcap_usd"]) * crypto.exchangeRate())
+        except:
+            pass
 
         embed.description += "\n\nSupply: " + str(int(cryptoMetrics["data"]["supply"]["circulating"]))
         embed.description += "\nActive Addresses (24 hours): " + str(cryptoMetrics["data"]["blockchain_stats_24_hours"]["count_of_active_addresses"])
@@ -81,13 +90,13 @@ class crypto(baseClass.baseClass):
             traceback.print_exc()
             return 0
 
-    lastGotRate = time.time() - 85000
+    lastGotRate = time.time() - (86400*3)
     oldRate = .72
     fixerIoAccessKey = keys.read("Fixer.io-Access-Key")
 
     def exchangeRate():
         try:
-            if crypto.lastGotRate + 86400 < time.time():
+            if crypto.lastGotRate + (86400*2) < time.time():
                 response = requests.get("http://data.fixer.io/api/latest?access_key=" + crypto.fixerIoAccessKey)
                 exchangeRate = response.json()
                 return exchangeRate["rates"]["GBP"] / exchangeRate["rates"]["USD"]

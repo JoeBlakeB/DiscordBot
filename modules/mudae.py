@@ -25,6 +25,7 @@ class mudae(baseClass.baseClass):
         "https://tenor.com/view/19dollar-fortnite-card-who-wants-it-and-yes-im-giving-it-away-remember-share-share-share-and-trolls-dont-get-blocked-gif-20067002",
         "https://cdn.discordapp.com/attachments/796434329831604288/836159855068446740/FloppaRoblox.gif",
         "https://i.redd.it/jfsl9u4i4fv61.gif",
+        "https://tenor.com/view/duck-happy-dance-dansando-feliz-gif-21214947",
         "https://tenor.com/view/supa-hot-fire-rekt-burn-popopo-im-not-a-rapper-gif-4910167",
         "https://cdn.discordapp.com/attachments/784512616461631498/835630485472149534/video0_-_2021-04-22T162803.577.mp4",
         "https://cdn.discordapp.com/attachments/784512616461631498/835626510244642836/you_are_really_pissing_me_off.mp4",
@@ -32,7 +33,6 @@ class mudae(baseClass.baseClass):
         "https://cdn.discordapp.com/attachments/643102110375870483/834749363611238440/saul.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836158873882722334/NigelFarageChungus.mov",
         "https://cdn.discordapp.com/attachments/796434329831604288/836158874405830666/267c43d37780e2e229f081207b45ec36.mp4",
-        "https://cdn.discordapp.com/attachments/796434329831604288/836158876097052672/4910c6b964f40097b4dcb6a9bf85a264.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836158878017781790/143506637_508974490065478_1575840665028811491_n.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836158910728503296/video0_38.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836158888826634250/BryanCat.mp4",
@@ -43,15 +43,40 @@ class mudae(baseClass.baseClass):
         "https://cdn.discordapp.com/attachments/796434329831604288/836741076714389565/WideKev.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836742675200868378/bububudadada.mp4",
         "https://cdn.discordapp.com/attachments/796434329831604288/836742127174156388/FloppaEars.gif",
-        "https://cdn.discordapp.com/attachments/796434329831604288/836742129984208916/SCzingus.gif"]
+        "https://cdn.discordapp.com/attachments/796434329831604288/836742129984208916/SCzingus.gif",
+        "https://v.redd.it/eplua59kpvx61/DASH_480.mp4",
+        "https://cdn.discordapp.com/attachments/671678084717740043/840587502162935808/hoodcate_gone_wild.mp4",
+        "https://cdn.discordapp.com/attachments/671678084717740043/840209528821514270/20210507_123015.jpg",
+        "https://cdn.discordapp.com/attachments/780911133388177428/822022618378534912/Mister_Mellow_-_DadWorksForSega-1338990937192755200.mp4",
+        "https://preview.redd.it/h9ansz50d2m61.png&format=png&auto=webp&s=31ca91551555c036e5268896c30c88b1bfe87b96",
+        "https://cdn.discordapp.com/attachments/671678084717740043/826222413339426876/hoodcate_interrogate.mp4",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643770499727360/HoodCateSleep3.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643764204732436/HoodCateSleep2.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643757447446528/HoodCateSleep.png",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643748618960896/HoodCateHD.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643742398414888/HoodCateChill.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643740137160725/HoodCateAd.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643738568753182/HoodCate2.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643736097783838/HoodCate.png",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643733934702632/DontMessWithHoodCate.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643786907451422/YoungHoodCate2.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643783985332254/YoungHoodCate.jpg",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643788036243466/image0.png",
+        "https://cdn.discordapp.com/attachments/796434329831604288/840643775294734366/HoodCateSmug.png",
+        "https://cdn.discordapp.com/attachments/808556111321628672/840666046037360660/video0-12.mp4",
+        "https://www.youtube.com/watch?v=OwOnt8pohNw",
+        "https://www.youtube.com/watch?v=UHPwxIC27uU",
+        "https://www.youtube.com/watch?v=AyOqGRjVtls",
+        "https://www.youtube.com/watch?v=cvh0nX08nRw",
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "https://www.youtube.com/watch?v=rGCxtPLzwO8",
+        "https://www.youtube.com/watch?v=doEqUhFiQS4",
+        "https://www.youtube.com/watch?v=C29IvglSGX0",
+        "https://i.redd.it/lz8vahs07py61.gif\nhttps://i.redd.it/v503ed557py61.gif",
+        "https://cdn.discordapp.com/attachments/643102110375870483/843112139383635989/6f72abee298454172ffba931982e8ad3.mp4",
+        "https://cdn.discordapp.com/attachments/735496384974946425/846795614473683054/hoodvibe.mp4"]
     async def mudae(message):
-        if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter: **@​Mudaebot**" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)":
+        if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter: **@​Mudaebot**" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content:
             await message.channel.send(random.choice(mudae.messageList))
-
-        try:
-            embed = message.embeds[0]
-            if "/" in str(embed.footer) and (("Claim Rank: #" in str(embed.description) and "Like Rank: #" in str(embed.description)) or "Page" in str(embed.footer)):
-                await message.add_reaction("⬅️")
-        except IndexError: pass
 
 mudae.generalCommands += [["authorID", 432610292342587392, mudae.mudae, ["message"], {}]]

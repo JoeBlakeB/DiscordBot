@@ -12,34 +12,18 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
         lowerEmojis[emoji.lower()] = emojis[emoji]
     async def say(message):
         messageContent = "say ".join(message.content.split("say ")[1:])
-        if len(messageContent) >= 256:
+        if (len(messageContent) >= 128 and ("\n>" in messageContent)) or len(messageContent) >= 1024:
             return await message.add_reaction("❌")
-        sayContent = ""
-        emojiName = None
-        for i in range(len(messageContent)):
-            if emojiName != None and messageContent[i] == ":":
-                if emojiName in list(emojis):
-                    sayContent = sayContent[:(-1)-len(emojiName)] + emojis[emojiName]
-                else:
-                    emojiName += ":"
-                emojiName = None
-            elif emojiName == None and messageContent[i] == ":":
-                emojiName = ""
-                sayContent += messageContent[i]
-            else:
-                if emojiName != None:
-                    emojiName += messageContent[i]
-                sayContent += messageContent[i]
-        if stuff.emojiRegex.search(sayContent):
-            await message.channel.send(sayContent.replace(";", ":"))
+        if stuff.emojiRegex.search(messageContent):
+            await message.channel.send(messageContent.replace(";", ":"))
         else:
-            await message.channel.send(sayContent)
-        print(str(message.author)+" said \"" + sayContent + "\"", flush=True)
+            await message.channel.send(messageContent)
+        print(str(message.author)+" said \"" + messageContent + "\"", flush=True)
         await stuff.deleteMessage(message)
 
     async def kill(message):
         whoToKill = "kill ".join(message.content.split("kill ")[1:]).split(" as ")[0]
-        if len(whoToKill) > 64:
+        if len(whoToKill) > 256:
             return await message.add_reaction("❌")
 
         if " as " in message.content:

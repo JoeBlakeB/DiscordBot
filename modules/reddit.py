@@ -214,7 +214,7 @@ class reddit(baseClass.baseClass):
             return submissionMetadata + submissionData
         else:
             await message.channel.send(submissionMetadata + submissionData)
-            print(str(message.author)+" NSFW:" + str(submission.over_18) +" "+ submission.subreddit.display_name+" "+ submission.id)
+            print(str(message.author)+" NSFW:" + str(submission.over_18) +" "+ submission.subreddit.display_name+" "+ submission.id, flush=True)
 
     async def postJson(url):
         async with aiohttp.ClientSession() as session:

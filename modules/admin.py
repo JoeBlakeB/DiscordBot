@@ -27,5 +27,12 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
             print(traceback.format_exc(), flush=True)
 
+    async def test(message):
+        if message.author.id != 365154655313068032:
+            return await message.add_reaction("❌")
+        referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+        await message.channel.send(str(len(referenceMessage.embeds)))
+
 admin.exclamationCommands["!react(?!\S)"] = [admin.react, ["message"], {}]
 admin.exclamationCommands["!say(?!\S)"] = [admin.say, ["message"], {}]
+admin.exclamationCommands["!test(?!\S)"] = [admin.test, ["message"], {}]
