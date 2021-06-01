@@ -31,6 +31,7 @@ class baseUtils:
 # (must be a coroutine, example: async def startup())
 # example:
 # exampleClass.startTasks += [exampleClass.startup(args)]
+## note: exampleClass.startTasks += [[exampleClass.startup()]] can be used if the only required arg is the bot object
 
 # list of args for mentionedCommands, exclamationCommands & generalCommands
 #  message              - discord message object

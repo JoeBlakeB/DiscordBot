@@ -20,9 +20,9 @@ songs = ["Cat", "Dog", "Door", "Living Mice", "Mice on Venus", "Moog City", "Sub
 
 class status(baseClass.baseClass):
     bot = None
-    async def presence():
-        while status.bot == None:
-            await asyncio.sleep(2)
+    async def presence(bot):
+        status.bot = bot
+        await asyncio.sleep(10)
         while True:
             try:
                 dogeValue = round(modules.crypto.crypto.getValue("doge") * 100, 2)
@@ -111,7 +111,7 @@ class status(baseClass.baseClass):
         embed.description = "```"+output[:1990]+"```"
         await message.channel.send(embed=embed)
 
-status.startTasks += [status.presence()]
+status.startTasks += [[status.presence]]
 
 status.mentionedCommands["ping(?!\S)"] = [status.ping, ["message"], {}]
 status.exclamationCommands["ping(?!\S)"] = [status.ping, ["message"], {}]

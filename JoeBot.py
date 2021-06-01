@@ -95,8 +95,6 @@ async def on_member_remove(member):
 @bot.client.event
 async def on_ready():
     print("Logged in as {0.user}".format(bot.client), flush=True)
-    import modules.status
-    modules.status.status.bot = bot
 
 @bot.client.event
 async def on_message(message):
@@ -151,7 +149,10 @@ async def on_reaction_add(reaction, user):
 print("Starting JoeBot with Python Version " + sys.version[:5] + " and Discord Version " + discord.__version__, flush=True)
 eventLoop = asyncio.get_event_loop()
 for task in bot.startTasks:
-    eventLoop.create_task(task)
+    if isinstance(task, list):
+        eventLoop.create_task(task[0](bot))
+    else:
+        eventLoop.create_task(task)
 bot.client.run(token, reconnect=True)
 
 # Close
