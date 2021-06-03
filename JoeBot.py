@@ -73,6 +73,8 @@ class bot(baseClass.baseClass):
                 kwargs[arg] = messageContentLower
             elif arg == "commandContent":
                 kwargs[arg] = messageContentLower[7-(6*int(not mentioned)):]
+            elif arg == "bot":
+                kwargs[arg] = bot
             elif arg == "typing":
                 await message.channel.trigger_typing()
 

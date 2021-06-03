@@ -10,11 +10,6 @@ import baseClass
 from emojis import emojis
 import keys
 
-# TODO:
-# reddit: re route to subreddit, user, or url, fallback to r/all if none
-# subreddit
-# user
-
 class reddit(baseClass.baseClass):
     try:
         secrets = keys.read("reddit-client_id", "reddit-client_secret", "reddit-username", "reddit-password")
@@ -36,24 +31,42 @@ class reddit(baseClass.baseClass):
     # {"UserID|ServerID":["BannedUntilTimestamp", NSFW:True]}
 
     async def reddit(self, message):
-        return await message.add_reaction("<:amogus:811622676783169536>")
+        await message.channel.send("TODO: add some help thing here...")
 
-    async def subreddit(self, message):
-        return await message.add_reaction("<:amogus:811622676783169536>")
-        print(time.time(), flush=True)
-        subredditInstance = await self.prawInstance.subreddit("196")
-        print(time.time(), flush=True)
-        lastTime = time.time()
-        postIDs = []
-        async for post in subredditInstance.hot(limit=256):
-            print(time.time()-lastTime, post.id)
-            lastTime = time.time()
-            postIDs += [post.id]
-        print(postIDs, flush=True)
-        print(time.time(), flush=True)
+    sortMethods = [{"hot":False, "new":False, "rising":False, "top":True, "controversial":True},
+        {"relevant": False, "hot": False, "new":False, "top":True}]
+    sortTimes = ["all", "year", "month", "week", "day", "hour"]
 
-    async def user(self, message):
-        return await message.add_reaction("<:amogus:811622676783169536>")
+    async def subreddit(self, message, commandContent, isSubreddit):
+        await message.add_reaction("<:amogus:811622676783169536>")
+
+        subredditName = commandContent.split()[0][2:]
+        restOfMessage = commandContent.split()[1:]
+        if "search" in restOfMessage[:-1]:
+            search = True
+            searchTerm = 0
+            for word in restOfMessage:
+                if searchTerm != 0 and searchTerm != 1: searchTerm += " " + word
+                elif searchTerm == 1: searchTerm = word
+                elif word == "search": searchTerm = 1
+        else:
+            search = False
+            searchTerm = "N/A"
+
+        sortMethod = list(self.sortMethods[int(search)])[0]
+        for word in restOfMessage:
+            if word == "search": break
+            if word in list(self.sortMethods[int(search)]):
+                sortMethod = word
+        if self.sortMethods[int(search)][sortMethod]:
+            sortTime = "all"
+            for word in restOfMessage:
+                if word == "search": break
+                if word in self.sortTimes:
+                    sortTime = word
+        else:
+            sortTime = "N/A"
+        await message.channel.send("isSubreddit: " + str(isSubreddit) + "\nSubreddit: " + subredditName + "\nsortMethod: " + sortMethod + "\nsortTime: " + sortTime + "\nsearch: " + str(search) + "\nsearchTerm: " + searchTerm)
 
     async def url(self, message, messageContentLower, exclamation):
         try:
@@ -108,7 +121,7 @@ class reddit(baseClass.baseClass):
         if awardCount != 0:
             awards = "⠀" + emojis["RedditGold"] + "{0:,}".format(awardCount)
             if "--coin" in message.content.lower():
-                awards += "⠀" + emojis["Coin"] + "⠀{0:,}".format(coinCount)
+                awards += "⠀" + emojis["Coin"] + "{0:,}".format(coinCount)
         stats = emojis["Upvote"]+" {0:,}⠀🗨 {1:,}{2}\n> 🗓 {3}".format(submission.score, submission.num_comments, awards,
             datetime.datetime.fromtimestamp(submission.created_utc).strftime("%Y-%m-%d %H:%M"))
 
@@ -239,26 +252,32 @@ class legacyReddit(oldReddit):
     postJson = reddit.postJson
     prawInstance = reddit.prawInstance
     async def subreddit(self, message, commandContent):
-        message.content = "joebot reddit " + commandContent
+        message.content = "joebot reddit " + commandContent[1:]
         command = message.content.split(" ")
         await self.__new__(self, message, command, None)
 
     async def user(self, message, commandContent):
-        message.content = "joebot reddit r/u_" + commandContent[2:]
+        message.content = "joebot reddit r/u_" + commandContent[3:]
         print(message.content)
         command = message.content.split(" ")
         await self.__new__(self, message, command, None)
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
-reddit.mentionedCommands["new\/r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message"], {"self":reddit}]
-reddit.mentionedCommands["new\/u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.user, ["message"], {"self":reddit}]
-reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
+reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
 reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
 reddit.exclamationCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
-reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
+reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
 reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
 reddit.closeTasks += [reddit.prawInstance.close()]
+
+
+
+
+reddit.mentionedCommands["!r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.mentionedCommands["!u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.exclamationCommands["!r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
+reddit.exclamationCommands["!u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
 reddit.startTasks += [legacyReddit.loadRecentSubmissions(legacyReddit)]
 reddit.closeTasks += [legacyReddit.saveRecentSubmissions(legacyReddit)]

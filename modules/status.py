@@ -60,6 +60,8 @@ class status(baseClass.baseClass):
         embed = discord.Embed()
         embed.title = "JoeBot Stats"
         embed.description = "Developer: Joe#8648\n"
+        embed.description += "[GitHub](https://github.com/JoeBlakeB/DiscordBot)\n"
+        embed.description += "[Bot Invite Link](https://discord.com/api/oauth2/authorize?client_id=796433833296658442&permissions=117824&scope=bot)\n"
         embed.description += "Python Version: " + sys.version[:5] + "\nDiscord Version: " + discord.__version__
         embed.description += self.version()
         try:

@@ -37,6 +37,7 @@ class baseUtils:
 #  message              - discord message object
 #  messageContentLower  - messageContentLower from the on_message, with any @JoeBots replaced with just joebot
 #  commandContent       - messageContentLower but without any of the joebot or !, example: "joebot hello" > "hello". not intended for generalCommands
+#  bot                  - bot object
 #  typing               - triggers typing, doesnt actually pass any extra data
 
 # list of checkTypes for generalCommands
