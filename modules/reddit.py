@@ -1,8 +1,11 @@
 import aiohttp
+import asyncio
+import bz2
 import datetime
 import discord
 import json
 import re
+import os
 import time
 import urllib.parse
 
@@ -11,14 +14,19 @@ from emojis import emojis
 import keys
 
 class reddit(baseClass.baseClass):
-    tempRecentPostsList = []
-    recentPosts = {}
-    # {"ChannelID":{"DayOfYear":[PostIDs]}}
     subredditCache = {}
     # {"Subreddit":[0=Timestamp, 1:=PostIDs]}
 
     async def reddit(self, message):
-        await message.channel.send("TODO: add some help thing here...")
+        embed = discord.Embed()
+        embed.title = "JoeBot Reddit"
+        embed.description = ("To get posts from reddit:\n<@!796433833296658442> r/<SUBREDDIT>\nor\n!r/<SUBREDDIT>"+
+        "\n\nYou can sort by different methods like top/new:\n<@!796433833296658442> r/<SUBREDDIT> top"+
+        "\n\nYou can also define the time range for those searches:\n<@!796433833296658442> r/<SUBREDDIT> top month"+
+        "\n\nIf you want to search for a post, say search then say the search terms:\n<@!796433833296658442> r/<SUBREDDIT> search <SEARCH TERMS>"+
+        "\n\nTo get posts from users instead of subreddits just say u/ instead of r/")
+        embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/690344425356001320.png")
+        await message.channel.send(embed=embed)
 
     sortMethods = [{"hot":False, "new":False, "rising":False, "top":True, "controversial":True},
         {"relevant": False, "hot": False, "new":False, "top":True}]
@@ -52,7 +60,7 @@ class reddit(baseClass.baseClass):
             sortTime = None
 
         # Convert that to a URL
-        url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/"
+        url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
         if search:
             url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
         else:
@@ -63,11 +71,14 @@ class reddit(baseClass.baseClass):
 
         # Select post to send to channel
         for post in posts:
-            if not post["data"]["id"] in self.tempRecentPostsList and not (post["data"]["stickied"] and not (
+            if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
                     "pinned" in message.content.lower() or "stickied" in message.content.lower())):
-                self.tempRecentPostsList.append(post["data"]["id"])
-                return await self.postSubmission(self, message, post["data"])
-        await message.add_reaction("<:amogus:811622676783169536>")
+                self.recentPosts.append(post["data"]["id"], str(message.channel.id))
+                await self.postSubmission(self, message, post["data"])
+                break
+        else:
+            await message.channel.send(f"Could not get another post from that subreddit{' with that search'*int(search)}.")
+        await self.recentPosts.autosave()
 
     async def getResponseJson(self, url):
         async with aiohttp.ClientSession() as session:
@@ -250,37 +261,63 @@ class reddit(baseClass.baseClass):
                 postJson = json.loads(response)
                 return postJson[0]["data"]["children"][0]["data"]
 
+    class recentPosts:
+        recentPosts = {}
+        # {"ChannelID":{"DayOfYear":[PostIDs]}}
+        botLastUsed = 0
+        autoSaveWaiting = False
 
-# Use old post finder code till i have actually done the new one
-# legacyReddit.py (not commited) is reddit.py from before the rewrite
-# with only the prawInstance code removed
-# # Get post data, crosspost data if it exists.
-# try: return postJson[0]["data"]["children"][0]["data"]["crosspost_parent_list"][0]
-# except: return postJson[0]["data"]["children"][0]["data"]
-import bz2
-import os
-from legacyReddit import reddit as oldReddit
-import asyncpraw, asyncprawcore
-class legacyReddit(oldReddit):
+        def check(postID, channelID):
+            try:
+                for day in list(reddit.recentPosts.recentPosts[channelID].values()):
+                    if postID in day:
+                        return False
+            except: pass
+            return True
 
-    try:
-        secrets = keys.read("reddit-client_id", "reddit-client_secret", "reddit-username", "reddit-password")
-        prawInstance = asyncpraw.Reddit(user_agent="Joe#8648 - joeblakeb.github.io",
-            client_id=secrets[0], client_secret=secrets[1],
-            username=secrets[2], password=secrets[3])
-    except Exception as e:
-        prawInstance = Exception
-        prawException = str(e)
-    async def subreddit(self, message, commandContent):
-        message.content = "joebot reddit " + commandContent[1:]
-        command = message.content.split(" ")
-        await self.__new__(self, message, command, None)
+        def append(postID, channelID):
+            try:
+                reddit.recentPosts.recentPosts[channelID][datetime.datetime.utcnow().strftime("%Y%m%d")].append(postID)
+            except:
+               reddit.recentPosts.recentPosts[channelID] = {datetime.datetime.utcnow().strftime("%Y%m%d"):[postID]}
 
-    async def user(self, message, commandContent):
-        message.content = "joebot reddit r/u_" + commandContent[3:]
-        print(message.content)
-        command = message.content.split(" ")
-        await self.__new__(self, message, command, None)
+        def clean():
+            for channel in list(reddit.recentPosts.recentPosts.values()):
+                for date in list(channel):                   # keep posts in the list for two weeks before removing them
+                    if (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days >= 14:
+                        del channel[date]
+
+        async def load():
+            try:
+                with bz2.open("tmp/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
+                    reddit.recentPosts.recentPosts = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
+            except FileNotFoundError:
+                try:
+                    with bz2.open("tmp/recentSubmissions.txt.bz2.bak", "rb") as recentSubmissionsFile:
+                        reddit.recentPosts.recentPosts = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
+                except FileNotFoundError: pass
+            reddit.recentPosts.clean()
+
+        async def save():
+            os.makedirs("tmp", exist_ok=True)
+            try: os.rename("tmp/recentSubmissions.txt.bz2", "tmp/recentSubmissions.txt.bz2.bak")
+            except: pass
+            with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
+                recentSubmissionsFile.write(bytes(json.dumps(reddit.recentPosts.recentPosts, indent=4), "utf-8"))
+            try: os.remove("tmp/recentSubmissions.txt.bz2.bak")
+            except: pass
+
+        async def autosave():
+            reddit.recentPosts.botLastUsed = time.time()
+            if reddit.recentPosts.autoSaveWaiting:
+                return
+
+            reddit.recentPosts.autoSaveWaiting = True
+            while reddit.recentPosts.botLastUsed + 600 >= time.time():
+                await asyncio.sleep(300)
+            reddit.recentPosts.clean()
+            await reddit.recentPosts.save()
+            reddit.recentPosts.autoSaveWaiting = False
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
@@ -289,15 +326,5 @@ reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.
 reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
 reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
 reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
-
-
-
-
-
-reddit.mentionedCommands["!r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.mentionedCommands["!u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.exclamationCommands["!r\/([^\s\/]+)(?!\S)"] = [legacyReddit.subreddit, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.exclamationCommands["!u\/[A-Za-z0-9_-]+(?!\S)"] = [legacyReddit.user, ["message", "commandContent"], {"self":legacyReddit}]
-reddit.startTasks += [legacyReddit.loadRecentSubmissions(legacyReddit)]
-reddit.closeTasks += [legacyReddit.saveRecentSubmissions(legacyReddit)]
-reddit.closeTasks += [legacyReddit.prawInstance.close()]
+reddit.startTasks += [reddit.recentPosts.load()]
+reddit.closeTasks += [reddit.recentPosts.save()]
