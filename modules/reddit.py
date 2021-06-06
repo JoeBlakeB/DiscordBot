@@ -4,21 +4,18 @@ import discord
 import json
 import re
 import time
+import urllib.parse
 
 import baseClass
 from emojis import emojis
 import keys
 
 class reddit(baseClass.baseClass):
+    tempRecentPostsList = []
     recentPosts = {}
     # {"ChannelID":{"DayOfYear":[PostIDs]}}
     subredditCache = {}
     # {"Subreddit":[0=Timestamp, 1:=PostIDs]}
-    cursedSubreddits = {}
-    # {"Subreddit":{"BanTime":Seconds, "NSFWOnlyBan":Bool "ContentWarning":"text", "BlockContent":("None"|NoMedia"|"Blocked Reason Text"|[ListOfImageURLs, #seperated])}}
-    # cursedSubreddits.txt: [subredditname], Ban[BanTime](NSFW| ), [BlockContent], CW:[ContentWarning, use \n](must be at end of line)
-    bannedUsers = {}
-    # {"UserID|ServerID":["BannedUntilTimestamp", NSFW:True]}
 
     async def reddit(self, message):
         await message.channel.send("TODO: add some help thing here...")
@@ -28,8 +25,7 @@ class reddit(baseClass.baseClass):
     sortTimes = ["all", "year", "month", "week", "day", "hour"]
 
     async def subreddit(self, message, commandContent, isSubreddit):
-        await message.add_reaction("<:amogus:811622676783169536>")
-
+        # Get what user wants from message
         subredditName = commandContent.split()[0][2:]
         restOfMessage = commandContent.split()[1:]
         if "search" in restOfMessage[:-1]:
@@ -41,22 +37,46 @@ class reddit(baseClass.baseClass):
                 elif word == "search": searchTerm = 1
         else:
             search = False
-            searchTerm = "N/A"
 
         sortMethod = list(self.sortMethods[int(search)])[0]
         for word in restOfMessage:
             if word == "search": break
             if word in list(self.sortMethods[int(search)]):
                 sortMethod = word
-        if self.sortMethods[int(search)][sortMethod]:
-            sortTime = "all"
-            for word in restOfMessage:
-                if word == "search": break
-                if word in self.sortTimes:
-                    sortTime = word
+        sortTime = "all"
+        for word in restOfMessage:
+            if word == "search": break
+            if word in self.sortTimes:
+                sortTime = word
         else:
-            sortTime = "N/A"
-        await message.channel.send("isSubreddit: " + str(isSubreddit) + "\nSubreddit: " + subredditName + "\nsortMethod: " + sortMethod + "\nsortTime: " + sortTime + "\nsearch: " + str(search) + "\nsearchTerm: " + searchTerm)
+            sortTime = None
+
+        # Convert that to a URL
+        url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/"
+        if search:
+            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
+        else:
+            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
+
+        # Get the search from the URL
+        posts = await self.getResponseJson(self, url)
+
+        # Select post to send to channel
+        for post in posts:
+            if not post["data"]["id"] in self.tempRecentPostsList and not (post["data"]["stickied"] and not (
+                    "pinned" in message.content.lower() or "stickied" in message.content.lower())):
+                self.tempRecentPostsList.append(post["data"]["id"])
+                return await self.postSubmission(self, message, post["data"])
+        await message.add_reaction("<:amogus:811622676783169536>")
+
+    async def getResponseJson(self, url):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    raise Exception(str(resp.status))
+                response = await resp.text()
+        responseJson = json.loads(response)
+        return responseJson["data"]["children"]
 
     async def url(self, message, messageContentLower, exclamation):
         try:
@@ -86,6 +106,9 @@ class reddit(baseClass.baseClass):
         author = submissionJson["subreddit_name_prefixed"] + " • u/" + submissionJson["author"]
         spoiler = forceSpoiler
         extras = []
+        if submissionJson["stickied"]:
+            extras += ["**PINNED BY MODERATORS**"]
+            title = "📌 " + title
         if submissionJson["spoiler"]:
             extras += ["**SPOILER**"]
             spoiler = True
@@ -129,7 +152,7 @@ class reddit(baseClass.baseClass):
 
         if submissionJson["is_self"] and submissionJson["selftext"] != "": # Text post
             submissionBody = "\n> \n> " + submissionJson["selftext"].replace("\n", "\n> ")
-            if True:
+            try:
                 pollLink = "https://www.reddit.com/poll/"+submissionJson["id"]
                 submissionBody = submissionBody.replace(f"\n> \n> [View Poll]({pollLink})", "")
                 if submissionBody == "\n> \n> ": submissionBody = ""
@@ -158,7 +181,7 @@ class reddit(baseClass.baseClass):
                     pollData += voteCounts
                 pollData += f"\n> Total Votes: {submissionJson['poll_data']['total_vote_count']}"
                 pollData += "\n> " + pollLink + "\n> Voting " + ("closing" * int(open)) + ("closed" * int(not open)) + " at " + time.ctime(submissionJson["poll_data"]["voting_end_timestamp"]/1000)
-            else:
+            except:
                 pollData = ""
 
             if spoiler:
