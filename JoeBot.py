@@ -80,6 +80,8 @@ class bot(baseClass.baseClass):
 
         try:
             await commandData[0](**kwargs)
+        except discord.errors.Forbidden:
+            pass
         except Exception:
             print(traceback.format_exc(), flush=True)
             await message.add_reaction("⚠️")
@@ -133,13 +135,21 @@ async def on_message(message):
                 if command[0] == "authorID":
                     if command[1] == message.author.id:
                         await bot.runCommand(message, command, messageContentLower, generalCommands=True)
+                if command[0] == "authorDisplayNameRegex":
+                    if command[1].match(message.author.display_name):
+                        await bot.runCommand(message, command, messageContentLower, generalCommands=True)
     except IndexError: pass
     except discord.errors.Forbidden: pass
+    except AttributeError as e:
+        if str(e) != "'DMChannel' object has no attribute 'guild'":
+            print(traceback.format_exc(), flush=True)
     except Exception:
         print(traceback.format_exc(), flush=True)
 
 @bot.client.event
 async def on_reaction_add(reaction, user):
+    if reaction.message.content in ["$wlt"] and reaction.message.author.id == 365154655313068032:
+        await reaction.message.delete()
     if "> <https://redd.it/" in reaction.message.content and reaction.message.author.id == 796433833296658442 and reaction.emoji == "🔄":
         messageContent = str(reaction.message.content)
         await reaction.message.edit(content="<:hoodcate2:803666598526320690><a:teatime:834903558599213057>")

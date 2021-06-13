@@ -59,6 +59,7 @@ class status(baseClass.baseClass):
     async def status(self, message):
         embed = discord.Embed()
         embed.title = "JoeBot Stats"
+        embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/796434329831604288/851087338662658068/DiscordBot_-_2021-02-17_-_Amogus_2.png")
         embed.description = "Developer: Joe#8648\n"
         embed.description += "[GitHub](https://github.com/JoeBlakeB/DiscordBot)\n"
         embed.description += "[Bot Invite Link](https://discord.com/api/oauth2/authorize?client_id=796433833296658442&permissions=117824&scope=bot)\n"

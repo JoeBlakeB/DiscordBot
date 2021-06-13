@@ -42,6 +42,7 @@ class baseUtils:
 
 # list of checkTypes for generalCommands
 #  authorID             - runs only for certain user
+#  authorDisplayNameRegex          - regex of the authors display_name
 
 # example module for a module that will say "Hello world!" when someone says "joebot hello"
 #./modules/example.py

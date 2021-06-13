@@ -46,7 +46,6 @@ class mudae(baseClass.baseClass):
         "https://cdn.discordapp.com/attachments/796434329831604288/836742129984208916/SCzingus.gif",
         "https://v.redd.it/eplua59kpvx61/DASH_480.mp4",
         "https://cdn.discordapp.com/attachments/671678084717740043/840587502162935808/hoodcate_gone_wild.mp4",
-        "https://cdn.discordapp.com/attachments/671678084717740043/840209528821514270/20210507_123015.jpg",
         "https://cdn.discordapp.com/attachments/780911133388177428/822022618378534912/Mister_Mellow_-_DadWorksForSega-1338990937192755200.mp4",
         "https://preview.redd.it/h9ansz50d2m61.png&format=png&auto=webp&s=31ca91551555c036e5268896c30c88b1bfe87b96",
         "https://cdn.discordapp.com/attachments/671678084717740043/826222413339426876/hoodcate_interrogate.mp4",
@@ -74,7 +73,8 @@ class mudae(baseClass.baseClass):
         "https://www.youtube.com/watch?v=C29IvglSGX0",
         "https://i.redd.it/lz8vahs07py61.gif\nhttps://i.redd.it/v503ed557py61.gif",
         "https://cdn.discordapp.com/attachments/643102110375870483/843112139383635989/6f72abee298454172ffba931982e8ad3.mp4",
-        "https://cdn.discordapp.com/attachments/735496384974946425/846795614473683054/hoodvibe.mp4"]
+        "https://cdn.discordapp.com/attachments/735496384974946425/846795614473683054/hoodvibe.mp4",
+        "https://cdn.discordapp.com/attachments/643102110375870483/851155937049444402/HoodCateGif.gif"]
     async def mudae(message):
         if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter: **@​Mudaebot**" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content:
             await message.channel.send(random.choice(mudae.messageList))

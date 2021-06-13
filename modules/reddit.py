@@ -77,7 +77,7 @@ class reddit(baseClass.baseClass):
                 await self.postSubmission(self, message, post["data"])
                 break
         else:
-            await message.channel.send(f"Could not get another post from that subreddit{' with that search'*int(search)}.")
+            await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
         await self.recentPosts.autosave()
 
     async def getResponseJson(self, url):

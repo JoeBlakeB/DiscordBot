@@ -1,6 +1,7 @@
 import asyncio
 import random
 import re
+import time
 
 import baseClass
 from emojis import emojis
@@ -79,6 +80,17 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
         print(str(message.author)+" youknowihadtodoittoem \"" + head + "\"", flush=True)
         await stuff.deleteMessage(message)
 
+    doYourWorkBitchRecent = {}
+    async def doYourWorkBitch(message):
+        try:
+            if stuff.doYourWorkBitchRecent[message.author.id] < time.time() - random.randint(20, 600):
+                stuff.doYourWorkBitchRecent[message.author.id] = time.time()
+            else:
+                return
+        except:
+            stuff.doYourWorkBitchRecent[message.author.id] = time.time()
+        await message.channel.send("do your work " + random.choice(["sussy baka", "bitch", "nigger", "baka", "retard", "cunt"]))
+
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
@@ -86,3 +98,4 @@ stuff.mentionedCommands["porn(?!\S)"] = [stuff.porn, ["message"], {}]
 stuff.mentionedCommands["(good|bad)( |)(bot|boy)$"] = [stuff.goodBot, ["message"], {}]
 stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
+stuff.generalCommands += [["authorDisplayNameRegex", re.compile("(.*)ඞ(.*)"), stuff.doYourWorkBitch, ["message"], {}]]
