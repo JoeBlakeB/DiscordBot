@@ -82,6 +82,8 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
 
     doYourWorkBitchRecent = {}
     async def doYourWorkBitch(message):
+        if random.randint(1,3) != 2:
+            return
         try:
             if stuff.doYourWorkBitchRecent[message.author.id] < time.time() - random.randint(20, 600):
                 stuff.doYourWorkBitchRecent[message.author.id] = time.time()

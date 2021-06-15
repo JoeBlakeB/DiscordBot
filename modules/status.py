@@ -1,6 +1,7 @@
 import asyncio
 import discord
 import random
+import requests
 import time
 import datetime
 import sys
@@ -25,15 +26,20 @@ class status(baseClass.baseClass):
         await asyncio.sleep(10)
         while True:
             try:
-                dogeValue = round(modules.crypto.crypto.getValue("doge") * 100, 2)
-                if dogeValue > 10: dogeValue = round(dogeValue, 1)
-                if dogeValue > 100: dogeValue = int(dogeValue)
-                if dogeValue == 0:
-                    await status.bot.client.change_presence(activity=discord.Activity(name="C418 - "+random.choice(songs), type=2))
-                    sleepTill = time.time() + random.randint(200, 400)
+                mcServer = subprocess.check_output(["nmap", "-p", "25565", "localhost"]).decode("utf-8")
+                if "open" in mcServer:
+                    await status.bot.client.change_presence(activity=discord.Game(name="MC @ " + requests.get("https://ipinfo.io/ip").text))
+                    sleepTill = time.time() + 200
                 else:
-                    await status.bot.client.change_presence(activity=discord.Activity(name="DOGE @"+str(dogeValue)+"p 🚀🌑", type=3))
-                    sleepTill = time.time() + 600
+                    dogeValue = round(modules.crypto.crypto.getValue("doge") * 100, 2)
+                    if dogeValue > 10: dogeValue = round(dogeValue, 1)
+                    if dogeValue > 100: dogeValue = int(dogeValue)
+                    if dogeValue == 0:
+                        await status.bot.client.change_presence(activity=discord.Activity(name="C418 - "+random.choice(songs), type=2))
+                        sleepTill = time.time() + random.randint(200, 400)
+                    else:
+                        await status.bot.client.change_presence(activity=discord.Activity(name="DOGE @"+str(dogeValue)+"p 🚀🌑", type=3))
+                        sleepTill = time.time() + 600
                 while True:
                     await asyncio.sleep(20)
                     if sleepTill < time.time():

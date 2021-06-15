@@ -18,7 +18,7 @@ class minecraftServerLog(baseClass.baseClass):
     startTime = datetime.datetime.fromtimestamp(time.time()).strftime("[%H:%M:%S]")
     async def monitor(bot):
         sayLogQueue = []
-        logFile = "/home/joe/Games/MinecraftServer/logs/latest.log"
+        logFile = "/home/joe/Games/MinecraftServer-1.17/logs/latest.log"
         newFile = False
         await asyncio.sleep(4)
         while True:
@@ -67,4 +67,4 @@ class minecraftServerLog(baseClass.baseClass):
         if say != "":
             await channel.send(say.strip())
 
-# minecraftServerLog.startTasks += [[minecraftServerLog.monitor]]
+minecraftServerLog.startTasks += [[minecraftServerLog.monitor]]
