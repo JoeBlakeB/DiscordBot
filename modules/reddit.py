@@ -54,19 +54,20 @@ class reddit(baseClass.baseClass):
             if word == "search": break
             if word in self.sortTimes:
                 sortTime = word
+                break
         else:
-            sortTime = None
+            sortTime = self.sortTimes[0]
 
         # Convert that to a URL
         url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
         if search:
-            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
+            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}&limit=30"
         else:
-            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
+            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}&limit=30"
 
         # Get the search from the URL
         try:
-            posts = await self.getResponseJson(self, url)
+            posts = await self.getListing(self, url)
         except Exception as e:
             if str(e) == "403":
                 await message.channel.send("Could not get a post from that subreddit, it may be set to private.")
@@ -75,28 +76,37 @@ class reddit(baseClass.baseClass):
             return
 
         # Select post to send to channel
-        try:
-            for post in posts:
-                if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
-                        "pinned" in message.content.lower() or "stickied" in message.content.lower())):
-                    self.recentPosts.append(post["data"]["id"], str(message.channel.id))
-                    await self.postSubmission(self, message, post["data"])
-                    break
-            else:
-                await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
-        except KeyError:
-            await message.channel.send("An error has occured while trying to get a post from that sub.")
-            print("An error has occured while trying to get", url, traceback.format_exc(), flush=True)
+        while True:
+            try:
+                for post in posts["children"]:
+                    if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
+                            "pinned" in message.content.lower() or "stickied" in message.content.lower())):
+                        self.recentPosts.append(post["data"]["id"], str(message.channel.id))
+                        await self.postSubmission(self, message, post["data"])
+                        break
+                else:
+                    # Try next page
+                    nextPage = await self.getListing(self, url+"&after="+posts["after"])
+                    if len(nextPage["children"]) == 0:
+                        await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
+                    else:
+                        posts = nextPage
+                        continue
+                break
+            except:
+                await message.channel.send("An error has occured while trying to get a post from that sub.")
+                print("An error has occured while trying to get", url, traceback.format_exc(), flush=True)
+                break
         await self.recentPosts.autosave()
 
-    async def getResponseJson(self, url):
+    async def getListing(self, url):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 if resp.status != 200:
                     raise Exception(str(resp.status))
                 response = await resp.text()
         responseJson = json.loads(response)
-        return responseJson["data"]["children"]
+        return responseJson["data"]
 
     async def url(self, message, messageContentLower, exclamation):
         try:
