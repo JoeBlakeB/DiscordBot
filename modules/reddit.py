@@ -65,38 +65,46 @@ class reddit(baseClass.baseClass):
         else:
             url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}&limit=30"
 
+        # check cache and if its in cache, use that instead of requesting again
+        getNewPost = not await self.cache.tryCache(self, message, url)
+
         # Get the search from the URL
-        try:
-            posts = await self.getListing(self, url)
-        except Exception as e:
-            if str(e) == "403":
-                await message.channel.send("Could not get a post from that subreddit, it may be set to private.")
-            else:
-                await message.channel.send("Error: " + str(e))
-            return
+        if getNewPost:
+            try:
+                posts = await self.getListing(self, url)
+            except Exception as e:
+                if str(e) == "403":
+                    await message.channel.send("Could not get a post from that subreddit, it may be set to private.")
+                else:
+                    await message.channel.send("Error: " + str(e))
+                return
 
         # Select post to send to channel
-        while True:
+        while getNewPost:
+            allListings = [posts]
             try:
                 for post in posts["children"]:
                     if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
                             "pinned" in message.content.lower() or "stickied" in message.content.lower())):
                         self.recentPosts.append(post["data"]["id"], str(message.channel.id))
                         await self.postSubmission(self, message, post["data"])
+                        self.cache.addToCache(self, url, sortMethod, allListings)
                         break
                 else:
                     # Try next page
-                    nextPage = await self.getListing(self, url+"&after="+posts["after"])
-                    if len(nextPage["children"]) == 0:
-                        await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
-                    else:
-                        posts = nextPage
-                        continue
+                    if posts["after"] != None:
+                        nextPage = await self.getListing(self, url+"&after="+posts["after"])
+                        if len(nextPage["children"]) != 0:
+                            posts = nextPage
+                            allListings.append(posts)
+                            continue
+                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])))} post from that subreddit{' with that search'*int(search)}.")
                 break
             except:
                 await message.channel.send("An error has occured while trying to get a post from that sub.")
                 print("An error has occured while trying to get", url, traceback.format_exc(), flush=True)
                 break
+        self.cache.cleanCache(self)
         await self.recentPosts.autosave()
 
     async def getListing(self, url):
@@ -337,6 +345,35 @@ class reddit(baseClass.baseClass):
             reddit.recentPosts.clean()
             await reddit.recentPosts.save()
             reddit.recentPosts.autoSaveWaiting = False
+
+    class cache:
+        cache = {}
+        # {"url": [listOfPostJsons, expiresTimestamp]}
+        keepInCacheTime = {"hot":600, "new":60, "rising":180, "top":1800, "controversial":900, "relevant": 1200}
+
+        async def tryCache(self, message, url):
+            try:
+                for post in self.cache.cache[url][0]:
+                    if self.recentPosts.check(post["id"], str(message.channel.id)) and not (post["stickied"] and not (
+                            "pinned" in message.content.lower() or "stickied" in message.content.lower())):
+                        self.recentPosts.append(post["id"], str(message.channel.id))
+                        await self.postSubmission(self, message, post)
+                        return True
+            except: pass
+            return False
+
+        def addToCache(self, url, sortMethod, allListings):
+            posts = []
+            for listing in allListings:
+                for post in listing["children"]:
+                    posts.append(post["data"])
+            self.cache.cache[url] = [posts, time.time() + self.cache.keepInCacheTime[sortMethod]]
+
+        def cleanCache(self):
+            timeNow = time.time()
+            for url in list(self.cache.cache):
+                if timeNow > self.cache.cache[url][1]:
+                    del self.cache.cache[url]
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
