@@ -7,6 +7,7 @@ import json
 import re
 import os
 import time
+import traceback
 import urllib.parse
 
 import baseClass
@@ -14,9 +15,6 @@ from emojis import emojis
 import keys
 
 class reddit(baseClass.baseClass):
-    subredditCache = {}
-    # {"Subreddit":[0=Timestamp, 1:=PostIDs]}
-
     async def reddit(self, message):
         embed = discord.Embed()
         embed.title = "JoeBot Reddit"
@@ -67,17 +65,28 @@ class reddit(baseClass.baseClass):
             url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}"
 
         # Get the search from the URL
-        posts = await self.getResponseJson(self, url)
+        try:
+            posts = await self.getResponseJson(self, url)
+        except Exception as e:
+            if str(e) == "403":
+                await message.channel.send("Could not get a post from that subreddit, it may be set to private.")
+            else:
+                await message.channel.send("Error: " + str(e))
+            return
 
         # Select post to send to channel
-        for post in posts:
-            if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
-                    "pinned" in message.content.lower() or "stickied" in message.content.lower())):
-                self.recentPosts.append(post["data"]["id"], str(message.channel.id))
-                await self.postSubmission(self, message, post["data"])
-                break
-        else:
-            await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
+        try:
+            for post in posts:
+                if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
+                        "pinned" in message.content.lower() or "stickied" in message.content.lower())):
+                    self.recentPosts.append(post["data"]["id"], str(message.channel.id))
+                    await self.postSubmission(self, message, post["data"])
+                    break
+            else:
+                await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts)))} post from that subreddit{' with that search'*int(search)}.")
+        except KeyError:
+            await message.channel.send("An error has occured while trying to get a post from that sub.")
+            print("An error has occured while trying to get", url, traceback.format_exc(), flush=True)
         await self.recentPosts.autosave()
 
     async def getResponseJson(self, url):

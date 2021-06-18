@@ -51,7 +51,7 @@ class bot(baseClass.baseClass):
         if len(message.content.split(" ")) <= 2:
             await message.channel.send(random.choice(self.noCommandSpecified))
         else:
-            await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message))
+            await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message.content))
 
     async def runCommand(message, command=None, messageContentLower="", generalCommands=False):
         if command == None:
@@ -148,8 +148,8 @@ async def on_message(message):
 
 @bot.client.event
 async def on_reaction_add(reaction, user):
-    if reaction.message.content in ["$wlt"] and reaction.message.author.id == 365154655313068032:
-        await reaction.message.delete()
+    # if reaction.message.content in ["$wlt"] and reaction.message.author.id == 365154655313068032:
+    #     await reaction.message.delete()
     if "> <https://redd.it/" in reaction.message.content and reaction.message.author.id == 796433833296658442 and reaction.emoji == "🔄":
         messageContent = str(reaction.message.content)
         await reaction.message.edit(content="<:hoodcate2:803666598526320690><a:teatime:834903558599213057>")

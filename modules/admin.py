@@ -56,6 +56,17 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
             print(traceback.format_exc(), flush=True)
 
+    async def edit(message):
+        if message.author.id != 365154655313068032:
+            return await admin.common(message)
+        try:
+            referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+            await referenceMessage.edit(content=message.content[17:].replace(";", ":"))
+            await admin.deleteMessage(message)
+        except:
+            await message.add_reaction("⚠️")
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
+admin.mentionedCommands["sudo edit(?!\S)"] = [admin.edit, ["message"], {}]
