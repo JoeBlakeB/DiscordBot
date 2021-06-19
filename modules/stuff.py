@@ -1,4 +1,5 @@
 import asyncio
+import discord
 import random
 import re
 import time
@@ -93,6 +94,16 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             stuff.doYourWorkBitchRecent[message.author.id] = time.time()
         await message.channel.send("do your work " + random.choice(["sussy baka", "bitch", "nigger", "baka", "retard", "cunt"]))
 
+    async def tomato(message):
+        if isinstance(message.channel, discord.channel.DMChannel):
+            await asyncio.sleep(random.randint(10,40))
+            await message.channel.send(message.author.display_name + " has been infected with a tomato")
+            await asyncio.sleep(random.randint(5,20))
+            await message.channel.send("Now change your status to \"DM me the word tomato\" to infect others")
+
+        else:
+            await message.add_reaction("🍅")
+
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
@@ -101,3 +112,5 @@ stuff.mentionedCommands["(good|bad)( |)(bot|boy)$"] = [stuff.goodBot, ["message"
 stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.generalCommands += [["authorDisplayNameRegex", re.compile("(.*)ඞ(.*)"), stuff.doYourWorkBitch, ["message"], {}]]
+
+stuff.mentionedCommands["tomato"] = [stuff.tomato, ["message"], {}]

@@ -2,12 +2,14 @@ import asyncio
 import baseClass
 import discord
 import emojis
+import re
 import traceback
 
 class admin(baseClass.baseClass, baseClass.baseUtils):
     async def common(message):
          await message.add_reaction("❌")
          await message.channel.send(message.author.display_name + " is not in the sudoers file.  This incident will be reported.")
+         print(message.author.display_name, "tried to run admin command", message.content, flush=True)
 
     async def react(message):
         if message.author.id != 365154655313068032:
@@ -66,7 +68,45 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
         except:
             await message.add_reaction("⚠️")
 
+    async def dmSend(message, bot):
+        if message.author.id != 365154655313068032:
+            return await admin.common(message)
+        try:
+            reciever = message.content[20:].split(" ")[0]
+            content = message.content[21+len(reciever):].replace(";", ":")
+            reciever = re.findall(r"\d+", reciever)[0]
+            user = bot.client.get_user(int(reciever))
+            await user.send(content)
+            await message.add_reaction("✅")
+        except:
+            await message.add_reaction("⚠️")
+            print(traceback.format_exc(), flush=True)
+
+    async def dmHistory(message, bot):
+        if message.author.id != 365154655313068032:
+            return await admin.common(message)
+        try:
+            reciever = message.content[23:].split(" ")[0]
+            reciever = re.findall(r"\d+", reciever)[0]
+            user = bot.client.get_user(int(reciever))
+
+            send = ""
+            for userMessage in await user.history().flatten():
+                sendAdd = userMessage.author.display_name + " - " + userMessage.content + "\n"
+                if len(send) + len(sendAdd) > 2000:
+                    await message.channel.send(send)
+                    send = sendAdd
+                else:
+                    send += sendAdd
+            await message.channel.send(send)
+            await message.add_reaction("✅")
+        except:
+            await message.add_reaction("⚠️")
+            print(traceback.format_exc(), flush=True)
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
 admin.mentionedCommands["sudo edit(?!\S)"] = [admin.edit, ["message"], {}]
+admin.mentionedCommands["sudo dm send(?!\S)"] = [admin.dmSend, ["message", "bot"], {}]
+admin.mentionedCommands["sudo dm history(?!\S)"] = [admin.dmHistory, ["message", "bot"], {}]

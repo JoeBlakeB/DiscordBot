@@ -104,12 +104,15 @@ async def on_ready():
 async def on_message(message):
     try:
         messageContentLower = message.content.lower()
-        if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
-            messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
-        if message.clean_content.startswith("@JoeBot"):
-            messageContentLower = "joebot" + message.clean_content[7:].lower()
-        if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
-            messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
+        if hasattr(message.channel, "guild"):
+            if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
+                messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
+            if message.clean_content.startswith("@JoeBot"):
+                messageContentLower = "joebot" + message.clean_content[7:].lower()
+            if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
+                messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
+        else:
+            messageContentLower = "joebot " + messageContentLower
 
         # mentionedCommands & exclamationCommands
         if not message.author.bot and (messageContentLower.split(" ")[0] == "joebot" or

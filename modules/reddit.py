@@ -58,12 +58,17 @@ class reddit(baseClass.baseClass):
         else:
             sortTime = self.sortTimes[0]
 
+        try:
+            isNSFW = message.channel.is_nsfw()
+        except:
+            isNSFW = True
+
         # Convert that to a URL
         url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
         if search:
-            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}&limit=30"
+            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30"
         else:
-            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(message.channel.is_nsfw())}&limit=30"
+            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30"
 
         # check cache and if its in cache, use that instead of requesting again
         getNewPost = not await self.cache.tryCache(self, message, url)
@@ -74,7 +79,9 @@ class reddit(baseClass.baseClass):
                 posts = await self.getListing(self, url)
             except Exception as e:
                 if str(e) == "403":
-                    await message.channel.send("Could not get a post from that subreddit, it may be set to private.")
+                    await message.channel.send("Could not get a post from that subreddit, it may be set to private. (Error 403)")
+                if str(e) == "404":
+                    await message.channel.send("That subreddit does not exist. (Error 404)")
                 else:
                     await message.channel.send("Error: " + str(e))
                 return
@@ -353,6 +360,8 @@ class reddit(baseClass.baseClass):
 
         async def tryCache(self, message, url):
             try:
+                if time.time() > self.cache.cache[url][1]:
+                    return False
                 for post in self.cache.cache[url][0]:
                     if self.recentPosts.check(post["id"], str(message.channel.id)) and not (post["stickied"] and not (
                             "pinned" in message.content.lower() or "stickied" in message.content.lower())):
