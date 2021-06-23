@@ -26,7 +26,10 @@ class status(baseClass.baseClass):
         await asyncio.sleep(10)
         while True:
             try:
-                mcServer = subprocess.check_output(["nmap", "-p", "25565", "localhost"]).decode("utf-8")
+                try:
+                    mcServer = subprocess.check_output(["nmap", "-p", "25565", "localhost"]).decode("utf-8")
+                except:
+                    mcServer = "closed"
                 if "open" in mcServer:
                     await status.bot.client.change_presence(activity=discord.Game(name="MC @ " + requests.get("https://ipinfo.io/ip").text))
                     sleepTill = time.time() + 200

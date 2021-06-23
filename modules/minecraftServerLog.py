@@ -50,6 +50,8 @@ class minecraftServerLog(baseClass.baseClass):
                             file.seek(where)
                         else:
                             sayLogQueue.append(line)
+            except FileNotFoundError:
+                await asyncio.sleep(300)
             except Exception as e:
                 if str(e) != "NewFile":
                     print(traceback.format_exc(), flush=True)
