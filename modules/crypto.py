@@ -9,12 +9,6 @@ import baseClass
 import keys
 
 class crypto(baseClass.baseClass):
-    help = {"list": True, "ListPriority": 8, "Title":"Crypto",
-        "ShortHelp": "Get info on a cryptocurrency. *@{displayName} crypto <coin>*",
-        "LongHelp": "Gives info for a cryptocurrency.\n"+
-        "**@{displayName} crypto <coin>** to view cryptocurrency info.\n"+
-        "For example: **@{displayName} crypto doge** for information about dogecoin.\n"+
-        "Sources: *messari.io* & *exchangeratesapi.io*"}
     async def crypto(self, message, commandContent):
         command = ["joebot"] + commandContent.split(" ")
         if command[1].lower()[0] == "!":
@@ -113,3 +107,9 @@ crypto.exclamationCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "comman
 
 crypto.exclamationCommands["doge(coin|)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto doge"}]
 crypto.exclamationCommands["(btc|bitcoin)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto btc"}]
+
+crypto.help["crypto"] = ["embed,include", {"title":"Crypto",
+    "description": "Gives info for a cryptocurrency.\n"+
+    "**<@796433833296658442> crypto <coin>** to view cryptocurrency info.\n"+
+    "For example: **<@796433833296658442> crypto doge** for information about dogecoin.\n"+
+    "Source: *messari.io*"}]

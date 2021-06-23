@@ -6,13 +6,15 @@ import re
 import traceback
 
 class admin(baseClass.baseClass, baseClass.baseUtils):
+    adminID = 365154655313068032
+
     async def common(message):
          await message.add_reaction("❌")
          await message.channel.send(message.author.display_name + " is not in the sudoers file.  This incident will be reported.")
          print(message.author.display_name, "tried to run admin command", message.content, flush=True)
 
     async def react(message):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             referenceMessage = await message.channel.fetch_message(message.reference.message_id)
@@ -25,7 +27,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
 
     async def say(message):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             await message.channel.send(message.content[15:].replace(";", ":"))
@@ -35,7 +37,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             print(traceback.format_exc(), flush=True)
 
     async def servers(message, bot):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             if "verbose" in message.content:
@@ -59,7 +61,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             print(traceback.format_exc(), flush=True)
 
     async def edit(message):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             referenceMessage = await message.channel.fetch_message(message.reference.message_id)
@@ -69,7 +71,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
 
     async def dmSend(message, bot):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             reciever = message.content[20:].split(" ")[0]
@@ -83,7 +85,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             print(traceback.format_exc(), flush=True)
 
     async def dmHistory(message, bot):
-        if message.author.id != 365154655313068032:
+        if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
             reciever = message.content[23:].split(" ")[0]
@@ -104,9 +106,20 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
             print(traceback.format_exc(), flush=True)
 
+    async def supress(message):
+        if message.author.id != admin.adminID:
+            return await admin.common(message)
+        try:
+            referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+            await referenceMessage.edit(suppress=True)
+            await admin.deleteMessage(message)
+        except:
+            await message.add_reaction("⚠️")
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
 admin.mentionedCommands["sudo edit(?!\S)"] = [admin.edit, ["message"], {}]
 admin.mentionedCommands["sudo dm send(?!\S)"] = [admin.dmSend, ["message", "bot"], {}]
 admin.mentionedCommands["sudo dm history(?!\S)"] = [admin.dmHistory, ["message", "bot"], {}]
+admin.mentionedCommands["sudo sup(|p)ress(?!\S)"] = [admin.supress, ["message"], {}]

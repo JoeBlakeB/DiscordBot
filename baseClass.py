@@ -6,6 +6,7 @@ class baseClass:
     generalCommands = []
     startTasks = []
     closeTasks = []
+    help = {}
 
 class baseUtils:
     async def deleteMessage(message, time=3):
@@ -54,3 +55,13 @@ class baseUtils:
 #         await message.channel.send("Hello world!")
 #
 # example.mentionedCommands["hello"] = [example.hello, ["message"], {}]
+
+# help
+# for an embedded help
+# example.help = ["embed", {"title":"example title", "description":"example desciption", "thumbnail":"https://cdn.discordapp.com/emojis/690344425356001320.png"}]
+# for an embedded help that is shown in base help
+# example.help = ["embed,include", {"title":"example title", "description":"example desciption", "thumbnail":"https://cdn.discordapp.com/emojis/690344425356001320.png"}]
+# for a plaintext help
+# example.help = ["plaintext", "example plaintext help"]
+# for include only
+# example.help = ["include", "example plaintext help"]

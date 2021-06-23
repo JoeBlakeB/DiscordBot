@@ -114,3 +114,5 @@ stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.generalCommands += [["authorDisplayNameRegex", re.compile("(.*)ඞ(.*)"), stuff.doYourWorkBitch, ["message"], {}]]
 
 stuff.mentionedCommands["tomato"] = [stuff.tomato, ["message"], {}]
+
+stuff.help["kill"] = ["include"]

@@ -15,15 +15,18 @@ from emojis import emojis
 import keys
 
 class reddit(baseClass.baseClass):
-    async def reddit(self, message):
-        embed = discord.Embed()
-        embed.title = "JoeBot Reddit"
-        embed.description = ("To get posts from reddit:\n<@!796433833296658442> r/<SUBREDDIT>\nor\n!r/<SUBREDDIT>"+
+    redditHelp = {"title":"JoeBot Reddit", "description":("To get posts from reddit:\n<@!796433833296658442> r/<SUBREDDIT>\nor\n!r/<SUBREDDIT>"+
         "\n\nYou can sort by different methods like top/new:\n<@!796433833296658442> r/<SUBREDDIT> top"+
         "\n\nYou can also define the time range for those searches:\n<@!796433833296658442> r/<SUBREDDIT> top month"+
         "\n\nIf you want to search for a post, say search then say the search terms:\n<@!796433833296658442> r/<SUBREDDIT> search <SEARCH TERMS>"+
-        "\n\nTo get posts from users instead of subreddits just say u/ instead of r/")
-        embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/690344425356001320.png")
+        "\n\nTo get posts from users instead of subreddits just say u/ instead of r/"+
+        "\n\nTo use JoeBot in DMs, remove the prefix, for example r/<SUBREDDIT> instead of !r/<SUBREDDIT>"),
+        "thumbnail":"https://cdn.discordapp.com/emojis/690344425356001320.png"}
+    async def reddit(self, message):
+        embed = discord.Embed()
+        embed.title = reddit.redditHelp["title"]
+        embed.description = reddit.redditHelp["description"]
+        embed.set_thumbnail(url=reddit.redditHelp["thumbnail"])
         await message.channel.send(embed=embed)
 
     sortMethods = [{"hot":False, "new":False, "rising":False, "top":True, "controversial":True},
@@ -388,8 +391,10 @@ reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
 reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
 reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
+reddit.exclamationCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
 reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
 reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
 reddit.startTasks += [reddit.recentPosts.load()]
 reddit.closeTasks += [reddit.recentPosts.save()]
+reddit.help["reddit"] = ["embed,include", reddit.redditHelp]
