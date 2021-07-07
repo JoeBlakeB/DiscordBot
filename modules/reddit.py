@@ -74,7 +74,7 @@ class reddit(baseClass.baseClass):
             url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30"
 
         # check cache and if its in cache, use that instead of requesting again
-        getNewPost = not await self.cache.tryCache(self, message, url)
+        getNewPost = not await self.cache.tryCache(self, message, url, isNSFW)
 
         # Get the search from the URL
         if getNewPost:
@@ -90,25 +90,34 @@ class reddit(baseClass.baseClass):
                 return
 
         # Select post to send to channel
+        nsfwBlock = [0, False] # sfw, nsfw
         while getNewPost:
             allListings = [posts]
             try:
                 for post in posts["children"]:
                     if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
                             "pinned" in message.content.lower() or "stickied" in message.content.lower())):
-                        self.recentPosts.append(post["data"]["id"], str(message.channel.id))
-                        await self.postSubmission(self, message, post["data"])
-                        self.cache.addToCache(self, url, sortMethod, allListings)
-                        break
+                        if post["data"]["over_18"] and not isNSFW:
+                            nsfwBlock[1] = True
+                        else:
+                            self.recentPosts.append(post["data"]["id"], str(message.channel.id))
+                            await self.postSubmission(self, message, post["data"])
+                            self.cache.addToCache(self, url, sortMethod, allListings)
+                            break
+                    elif not post["data"]["over_18"] and not isNSFW:
+                        nsfwBlock[0] += 1
                 else:
                     # Try next page
-                    if posts["after"] != None:
-                        nextPage = await self.getListing(self, url+"&after="+posts["after"])
-                        if len(nextPage["children"]) != 0:
-                            posts = nextPage
-                            allListings.append(posts)
-                            continue
-                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])))} post from that subreddit{' with that search'*int(search)}.")
+                    # only if there are enough sfw posts in results if its a sfw channel
+                    if (nsfwBlock[0] >= len(posts) / 3) or isNSFW:
+                        if posts["after"] != None:
+                            nsfwBlock[1] = False
+                            nextPage = await self.getListing(self, url+"&after="+posts["after"])
+                            if len(nextPage["children"]) != 0:
+                                posts = nextPage
+                                allListings.append(posts)
+                                continue
+                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])) and not nsfwBlock[1])}{' SFW'*int(nsfwBlock[1])} post from that subreddit{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
                 break
             except:
                 await message.channel.send("An error has occured while trying to get a post from that sub.")
@@ -147,7 +156,14 @@ class reddit(baseClass.baseClass):
                     for emoji in "4️⃣", "0️⃣", emojis["Four"]:
                         await message.add_reaction(emoji)
             except Exception: pass
-        await self.postSubmission(self, message, submissionJson)
+        try:
+            isNSFW = message.channel.is_nsfw()
+        except:
+            isNSFW = True
+        if submissionJson["over_18"] and not isNSFW:
+            await message.channel.send("That post is blocked because you are in a SFW channel.")
+        else:
+            await self.postSubmission(self, message, submissionJson)
 
     async def postSubmission(self, message, submissionJson, crosspost=False, forceSpoiler=False):
         title = "**" + submissionJson["title"] + "**"
@@ -361,13 +377,13 @@ class reddit(baseClass.baseClass):
         # {"url": [listOfPostJsons, expiresTimestamp]}
         keepInCacheTime = {"hot":600, "new":60, "rising":180, "top":1800, "controversial":900, "relevant": 1200}
 
-        async def tryCache(self, message, url):
+        async def tryCache(self, message, url, isNSFW):
             try:
                 if time.time() > self.cache.cache[url][1]:
                     return False
                 for post in self.cache.cache[url][0]:
                     if self.recentPosts.check(post["id"], str(message.channel.id)) and not (post["stickied"] and not (
-                            "pinned" in message.content.lower() or "stickied" in message.content.lower())):
+                            "pinned" in message.content.lower() or "stickied" in message.content.lower())) and not (post["over_18"] and not isNSFW):
                         self.recentPosts.append(post["id"], str(message.channel.id))
                         await self.postSubmission(self, message, post)
                         return True
