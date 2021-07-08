@@ -4,7 +4,7 @@ import re
 import baseClass
 
 class help(baseClass.baseClass):
-    defaultHelpMessage = {"title":"JoeBot Help", "description":"Developer: <@365154655313068032> [(GitHub)](https://github.com/JoeBlakeB/DiscordBot)\n\nTo use JoeBot, say:\n**<@796433833296658442> <command>**\nor **joebot <command>**\nor **!<command>**", "thumbnail":"https://cdn.discordapp.com/avatars/796433833296658442/45d01f0b2d42a5e23e552b75f359525e.png"}
+    defaultHelpMessage = {"title":"JoeBot Help", "description":"Developer: <@365154655313068032> [(GitHub)](https://github.com/JoeBlakeB/DiscordBot)\n\nTo use JoeBot, say:\n**<@796433833296658442> <command>**\nor **joebot <command>**\nor **!<command>**\nor in direct messages with just the command", "thumbnail":"https://cdn.discordapp.com/avatars/796433833296658442/45d01f0b2d42a5e23e552b75f359525e.png"}
     helpRegex = False
     async def helpCommand(message, messageContentLower, bot):
         if not help.helpRegex:

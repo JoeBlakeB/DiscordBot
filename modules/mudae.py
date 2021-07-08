@@ -73,9 +73,10 @@ class mudae(baseClass.baseClass):
         "https://i.redd.it/lz8vahs07py61.gif\nhttps://i.redd.it/v503ed557py61.gif",
         "https://cdn.discordapp.com/attachments/643102110375870483/843112139383635989/6f72abee298454172ffba931982e8ad3.mp4",
         "https://cdn.discordapp.com/attachments/735496384974946425/846795614473683054/hoodvibe.mp4",
+        "https://cdn.discordapp.com/attachments/643102110375870483/861188652528828436/BryanHussein.jpeg",
         "https://cdn.discordapp.com/attachments/643102110375870483/851155937049444402/HoodCateGif.gif"]
     async def mudae(message):
-        if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content or ", You can't react to kakera for" in message.content or ", you can't claim for another " in message.content:
+        if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content or ", You can't react to kakera for" in message.content or (", you can't claim for another " in message.content and len(message.content) < 80):
             await message.channel.send(random.choice(mudae.messageList))
 
 mudae.generalCommands += [["authorID", 432610292342587392, mudae.mudae, ["message"], {}]]

@@ -79,14 +79,27 @@ class reddit(baseClass.baseClass):
         # Get the search from the URL
         if getNewPost:
             try:
-                posts = await self.getListing(self, url)
+                posts, history = await self.getListing(self, url)
             except Exception as e:
                 if str(e) == "403":
                     await message.channel.send("Could not get a post from that subreddit, it may be set to private. (Error 403)")
-                if str(e) == "404":
+                elif str(e) == "404":
                     await message.channel.send("That subreddit does not exist. (Error 404)")
                 else:
                     await message.channel.send("Error: " + str(e))
+                return
+
+            # If the subreddit does not exist
+            if history:
+                if len(posts["children"]) == 0:
+                    await message.channel.send("That subreddit does not exist.")
+                elif len(posts["children"]) == 1 and posts["children"][0]["kind"] == "t5":
+                    await message.channel.send(f"That subreddit does not exist, did you mean {posts['children'][0]['data']['display_name_prefixed']}?")
+                else:
+                    listOfReccomendations = []
+                    for sub in posts["children"]:
+                        if sub["kind"] == "t5": listOfReccomendations.append(sub["data"]["display_name_prefixed"])
+                    await message.channel.send("That subreddit does not exist, did you mean?\n - " + "\n - ".join(listOfReccomendations))
                 return
 
         # Select post to send to channel
@@ -112,7 +125,7 @@ class reddit(baseClass.baseClass):
                     if (nsfwBlock[0] >= len(posts) / 3) or isNSFW:
                         if posts["after"] != None:
                             nsfwBlock[1] = False
-                            nextPage = await self.getListing(self, url+"&after="+posts["after"])
+                            nextPage, redirects = await self.getListing(self, url+"&after="+posts["after"])
                             if len(nextPage["children"]) != 0:
                                 posts = nextPage
                                 allListings.append(posts)
@@ -133,7 +146,7 @@ class reddit(baseClass.baseClass):
                     raise Exception(str(resp.status))
                 response = await resp.text()
         responseJson = json.loads(response)
-        return responseJson["data"]
+        return responseJson["data"], bool(resp.history)
 
     async def url(self, message, messageContentLower, exclamation):
         try:
@@ -338,6 +351,7 @@ class reddit(baseClass.baseClass):
             for channel in list(reddit.recentPosts.recentPosts.values()):
                 for date in list(channel):                   # keep posts in the list for two weeks before removing them
                     if (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days >= 14:
+                        print("DELETING", datetime.date.today(), date, channel, (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days, flush=True)
                         del channel[date]
 
         async def load():
