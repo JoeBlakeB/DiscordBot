@@ -82,9 +82,9 @@ class reddit(baseClass.baseClass):
                 posts, history = await self.getListing(self, url)
             except Exception as e:
                 if str(e) == "403":
-                    await message.channel.send("Could not get a post from that subreddit, it may be set to private. (Error 403)")
+                    await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}, it may be set to private. (Error 403)")
                 elif str(e) == "404":
-                    await message.channel.send("That subreddit does not exist. (Error 404)")
+                    await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist. (Error 404)")
                 else:
                     await message.channel.send("Error: " + str(e))
                 return
@@ -92,14 +92,14 @@ class reddit(baseClass.baseClass):
             # If the subreddit does not exist
             if history:
                 if len(posts["children"]) == 0:
-                    await message.channel.send("That subreddit does not exist.")
+                    await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist.")
                 elif len(posts["children"]) == 1 and posts["children"][0]["kind"] == "t5":
-                    await message.channel.send(f"That subreddit does not exist, did you mean {posts['children'][0]['data']['display_name_prefixed']}?")
+                    await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist, did you mean {posts['children'][0]['data']['display_name_prefixed']}?")
                 else:
                     listOfReccomendations = []
                     for sub in posts["children"]:
                         if sub["kind"] == "t5": listOfReccomendations.append(sub["data"]["display_name_prefixed"])
-                    await message.channel.send("That subreddit does not exist, did you mean?\n - " + "\n - ".join(listOfReccomendations))
+                    await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist, did you mean?\n - " + "\n - ".join(listOfReccomendations))
                 return
 
         # Select post to send to channel
@@ -130,7 +130,7 @@ class reddit(baseClass.baseClass):
                                 posts = nextPage
                                 allListings.append(posts)
                                 continue
-                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])) and not nsfwBlock[1])}{' SFW'*int(nsfwBlock[1])} post from that subreddit{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
+                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])) and not nsfwBlock[1])}{' SFW'*int(nsfwBlock[1])} post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
                 break
             except:
                 await message.channel.send("An error has occured while trying to get a post from that sub.")
@@ -345,14 +345,18 @@ class reddit(baseClass.baseClass):
             try:
                 reddit.recentPosts.recentPosts[channelID][datetime.datetime.utcnow().strftime("%Y%m%d")].append(postID)
             except:
-               reddit.recentPosts.recentPosts[channelID] = {datetime.datetime.utcnow().strftime("%Y%m%d"):[postID]}
+               try:
+                   reddit.recentPosts.recentPosts[channelID][datetime.datetime.utcnow().strftime("%Y%m%d")] = [postID]
+               except:
+                  reddit.recentPosts.recentPosts[channelID] = {datetime.datetime.utcnow().strftime("%Y%m%d"):[postID]}
 
         def clean():
-            for channel in list(reddit.recentPosts.recentPosts.values()):
-                for date in list(channel):                   # keep posts in the list for two weeks before removing them
+            for channel in list(reddit.recentPosts.recentPosts):
+                for date in list(reddit.recentPosts.recentPosts[channel]):  # keep posts in the list for two weeks before removing them
                     if (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days >= 14:
-                        print("DELETING", datetime.date.today(), date, channel, (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days, flush=True)
-                        del channel[date]
+                        del reddit.recentPosts.recentPosts[channel][date]
+                if reddit.recentPosts.recentPosts[channel] == {}:
+                    del reddit.recentPosts.recentPosts[channel]
 
         async def load():
             try:
