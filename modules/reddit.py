@@ -150,6 +150,9 @@ class reddit(baseClass.baseClass):
 
     async def url(self, message, messageContentLower, exclamation):
         try:
+            try:
+                await message.edit(suppress=True)
+            except: pass
             # get id from url
             messageContentLower = messageContentLower[7-(6*int(exclamation)):]
             messageContentLower = messageContentLower.replace("https://", "").replace("http://", "").replace("www.", "")
@@ -159,9 +162,6 @@ class reddit(baseClass.baseClass):
                 submissionID = messageContentLower.split("/comments/")[1].split("/")[0]
             # get post from id
             submissionJson = await self.postJson(submissionID)
-            try:
-                await message.edit(suppress=True)
-            except: pass
         except Exception as e:
             await message.add_reaction("⚠️")
             try:
@@ -296,7 +296,9 @@ class reddit(baseClass.baseClass):
                 submissionData = f"\n> {e}\n{spoilerLink}{submissionJson['url']}{spoilerText}"
         elif submissionJson["url"] == "https://www.reddit.com" + submissionJson["permalink"]: # Nothing, should never be used
             submissionData = ""
-        elif re.match("https:\/\/www.reddit.com\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submissionJson["url"]) and not crosspost: # Crossposts
+        elif re.match("(https:\/\/www.reddit.com|)\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submissionJson["url"]) and not crosspost: # Crossposts
+            if submissionJson["url"][:3] == "/r/":
+                submissionJson["url"] = "https://www.reddit.com" + submissionJson["url"]
             try:
                 submissionID = submissionJson["url"].split("/comments/")[1].split("/")[0]
                 submission = await self.postJson(submissionID)
