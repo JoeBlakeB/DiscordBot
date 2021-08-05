@@ -104,6 +104,18 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
         else:
             await message.add_reaction("🍅")
 
+    async def pfp(message, bot):
+        try:
+            userID = message.content.split(" ")[-1]
+            userID = re.findall(r"\d+", userID)[0]
+            user = bot.client.get_user(int(userID))
+            await message.channel.send(user.avatar_url)
+        except Exception:
+            try:
+                await message.channel.send(message.author.avatar_url)
+            except Exception:
+                await message.add_reaction("⚠️")
+
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
@@ -112,6 +124,8 @@ stuff.mentionedCommands["(good|bad)( |)(bot|boy)$"] = [stuff.goodBot, ["message"
 stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.generalCommands += [["authorDisplayNameRegex", re.compile("(.*)ඞ(.*)"), stuff.doYourWorkBitch, ["message"], {}]]
+stuff.mentionedCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
+stuff.exclamationCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
 
 stuff.mentionedCommands["tomato"] = [stuff.tomato, ["message"], {}]
 
