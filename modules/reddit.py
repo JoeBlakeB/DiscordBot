@@ -80,9 +80,19 @@ class reddit(baseClass.baseClass):
         if getNewPost:
             try:
                 posts, history = await self.getListing(self, url)
+                posts = posts["data"]
             except Exception as e:
                 if str(e) == "403":
-                    await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}, it may be set to private. (Error 403)")
+                    try:
+                        reason = ""
+                        reasonPrivate = False
+                        reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
+                        if reasonJson["reason"] == "PRIVATE":
+                            reasonPrivate = True
+                            if reasonJson["data"]["description"] != "":
+                                reason = "\n> " + reasonJson["data"]["description"].replace("\n\n", "\n").replace("\n", "\n> ")
+                    except: pass
+                    await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{', it may be set to private. (Error 403)'*int(not reasonPrivate)}{' because it is set to private.'*int(reasonPrivate)}{reason}")
                 elif str(e) == "404":
                     await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist. (Error 404)")
                 else:
@@ -126,6 +136,7 @@ class reddit(baseClass.baseClass):
                         if posts["after"] != None:
                             nsfwBlock[1] = False
                             nextPage, redirects = await self.getListing(self, url+"&after="+posts["after"])
+                            nextPage = nextPage["data"]
                             if len(nextPage["children"]) != 0:
                                 posts = nextPage
                                 allListings.append(posts)
@@ -139,14 +150,14 @@ class reddit(baseClass.baseClass):
         self.cache.cleanCache(self)
         await self.recentPosts.autosave()
 
-    async def getListing(self, url):
+    async def getListing(self, url, anyStatus=False):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
-                if resp.status != 200:
+                if resp.status != 200 and not anyStatus:
                     raise Exception(str(resp.status))
                 response = await resp.text()
         responseJson = json.loads(response)
-        return responseJson["data"], bool(resp.history)
+        return responseJson, bool(resp.history)
 
     async def url(self, message, messageContentLower, exclamation):
         try:
