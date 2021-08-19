@@ -12,7 +12,6 @@ import re
 import sys
 import traceback
 
-from emojis import emojis
 from userJoinLeave import userJoinLeave
 import keys
 
@@ -29,6 +28,12 @@ except:
         print("Token not found in token.txt and not in args")
         exit(1)
 
+# Change commands prefix for testing
+try:
+    testingMode = keys.read("Testing", file="config.txt")
+except:
+    testingMode = False
+
 # Create bot
 
 from modules import baseClass
@@ -44,7 +49,7 @@ class bot(baseClass.baseClass):
     for command in list(baseClass.baseClass.exclamationCommands):
         exclamationCommandsList += [re.compile(command)]
 
-    noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", emojis["HoodCate"], emojis["HoodCateHD"]]
+    noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", "<:hoodcate:822937989667749918>", "<:hoodcateHD:822937932464914494>", "<:hoodcate2:803666598526320690><a:teatime:852882675680149524>"]
     commandNotFoundList = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
 
     async def commandNotFound(self, message):
@@ -104,15 +109,21 @@ async def on_ready():
 async def on_message(message):
     try:
         messageContentLower = message.content.lower()
-        if hasattr(message.channel, "guild"):
-            if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
-                messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
-            if message.clean_content.startswith("@JoeBot"):
-                messageContentLower = "joebot" + message.clean_content[7:].lower()
-            if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
-                messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
+        if not testingMode:
+            if hasattr(message.channel, "guild"):
+                if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
+                    messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
+                if message.clean_content.startswith("@JoeBot"):
+                    messageContentLower = "joebot" + message.clean_content[7:].lower()
+                if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
+                    messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
+            else:
+                messageContentLower = "joebot " + messageContentLower
         else:
-            messageContentLower = "joebot " + messageContentLower
+            if messageContentLower.startswith("joebottest") or messageContentLower.startswith("joebotbeta"):
+                messageContentLower = "joebot" + messageContentLower[10:]
+            else:
+                return
 
         # mentionedCommands & exclamationCommands
         if not message.author.bot and (messageContentLower.split(" ")[0] == "joebot" or
@@ -148,16 +159,6 @@ async def on_message(message):
             print(traceback.format_exc(), flush=True)
     except Exception:
         print(traceback.format_exc(), flush=True)
-
-@bot.client.event
-async def on_reaction_add(reaction, user):
-    # if str(reaction.message.content)[0] == "$" and reaction.message.author.id == 365154655313068032:
-    #     await reaction.message.delete()
-    if "> <https://redd.it/" in reaction.message.content and reaction.message.author.id == 796433833296658442 and reaction.emoji == "🔄":
-        messageContent = str(reaction.message.content)
-        await reaction.message.edit(content="<:hoodcate2:803666598526320690><a:teatime:834903558599213057>")
-        await asyncio.sleep(5)
-        await reaction.message.edit(content=messageContent)
 
 # Start
 

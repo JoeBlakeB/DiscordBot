@@ -1,7 +1,6 @@
 import asyncio
 import baseClass
 import discord
-import emojis
 import re
 import traceback
 
@@ -18,10 +17,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             return await admin.common(message)
         try:
             referenceMessage = await message.channel.fetch_message(message.reference.message_id)
-            if message.content[15:] in list(emojis.emojis):
-                await referenceMessage.add_reaction(emojis.emojis[message.content[15:]])
-            else:
-                await referenceMessage.add_reaction(message.content[15:].replace(";", ":"))
+            await referenceMessage.add_reaction(message.content[15:].replace(";", ":"))
             await admin.deleteMessage(message)
         except:
             await message.add_reaction("⚠️")

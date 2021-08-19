@@ -11,8 +11,14 @@ import traceback
 import urllib.parse
 
 import baseClass
-from emojis import emojis
 import keys
+
+emojis = {
+    "RedditGold":   "<:RedditGold:829118524969975809>",
+    "Upvote":       "<:upvote:829141166430748724>",
+    "Coin":         "<:Coin:829274378881073174>",
+    "Four":         "<:four:829673449110765598>"
+}
 
 class reddit(baseClass.baseClass):
     redditHelp = {"title":"JoeBot Reddit", "description":("To get posts from reddit:\n<@!796433833296658442> r/<SUBREDDIT>\nor\n!r/<SUBREDDIT>"+
@@ -330,7 +336,6 @@ class reddit(baseClass.baseClass):
             return submissionMetadata + submissionData
         else:
             await message.channel.send(submissionMetadata + submissionData)
-            print(str(message.author)+" NSFW:" + str(submissionJson["over_18"]) +" "+ submissionJson["subreddit_name_prefixed"]+" "+ submissionJson["id"], flush=True)
 
     async def postJson(submissionID):
         url = "https://reddit.com/" + submissionID + ".json"

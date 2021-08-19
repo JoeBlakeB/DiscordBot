@@ -5,7 +5,25 @@ import re
 import time
 
 import baseClass
-from emojis import emojis
+
+emojis = {
+    "HoodCate":     "<:hoodcate:822937989667749918>",
+    "HoodCateHD":   "<:hoodcateHD:822937932464914494>",
+    "Shotgun1":     "<:shotgun1:803767806956929055>",
+    "Shotgun2":     "<:shotgun2:803767806914068493>",
+    "Shotgun3":     "<:shotgun3:803767807124439061>",
+    "Shotgun4":     "<a:shotgun4:803767807170576384>",
+    "RedditGold":   "<:RedditGold:829118524969975809>",
+    "Upvote":       "<:upvote:829141166430748724>",
+    "Coin":         "<:Coin:829274378881073174>",
+    "Four":         "<:four:829673449110765598>",
+    "TeaTime":      "<a:teatime:834903558599213057>",
+    "TeaTime2":     "<a:teatime2:835602583057203200>",
+    "Amogus":       "<:amogus:811622676783169536>",
+    "SidStare":     "<a:SidStare:822896085856157756>",
+    "CatStand":     "<:CatStand:814251218033180743>",
+    "TigerBoop":    "<a:tigerboop:808399700549697596>"
+}
 
 class stuff(baseClass.baseClass, baseClass.baseUtils):
     emojiRegex = re.compile("<(a|)(:|;)(.*)(:|;)(\d*)>")
@@ -20,7 +38,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await message.channel.send(messageContent.replace(";", ":"))
         else:
             await message.channel.send(messageContent)
-        print(str(message.author)+" said \"" + messageContent + "\"", flush=True)
         await stuff.deleteMessage(message)
 
     async def kill(message):
@@ -38,7 +55,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await message.channel.send((murderer + gun + whoToKill).replace(";", ":"))
         else:
             await message.channel.send(murderer + gun + whoToKill)
-        print(str(message.author)+" killed \"" + whoToKill + "\"", flush=True)
         await stuff.deleteMessage(message)
 
     bitlyUrls = ["3chJDM7", "3t3GQvM", "36gTVIs", "36kYhyj", "2KWKKWh", "2MeJUVt", "3iVIj2F", "2YpG522",
@@ -78,7 +94,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             else:
                 head = text
         await message.channel.send(stuff.youKnowLeft + head + stuff.youKnowRight + stuff.youKnowIHadToDoItToEmBody)
-        print(str(message.author)+" youknowihadtodoittoem \"" + head + "\"", flush=True)
         await stuff.deleteMessage(message)
 
     doYourWorkBitchRecent = {}

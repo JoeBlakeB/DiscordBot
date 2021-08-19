@@ -3,8 +3,8 @@
 ## keys.txt
 ##  | Discord: <Discord token>
 
-def read(*IDs):
-    with open("keys.txt") as keysFile:
+def read(*IDs, file="keys.txt"):
+    with open(file) as keysFile:
         keysRead = keysFile.read().strip()
     keys = {}
     for key in keysRead.split("\n"):
