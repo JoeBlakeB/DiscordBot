@@ -151,7 +151,7 @@ async def on_message(message):
 
 @bot.client.event
 async def on_reaction_add(reaction, user):
-    # if reaction.message.content in ["$wlt"] and reaction.message.author.id == 365154655313068032:
+    # if str(reaction.message.content)[0] == "$" and reaction.message.author.id == 365154655313068032:
     #     await reaction.message.delete()
     if "> <https://redd.it/" in reaction.message.content and reaction.message.author.id == 796433833296658442 and reaction.emoji == "🔄":
         messageContent = str(reaction.message.content)

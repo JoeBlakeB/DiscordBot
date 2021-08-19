@@ -74,7 +74,17 @@ class mudae(baseClass.baseClass):
         "https://cdn.discordapp.com/attachments/643102110375870483/843112139383635989/6f72abee298454172ffba931982e8ad3.mp4",
         "https://cdn.discordapp.com/attachments/735496384974946425/846795614473683054/hoodvibe.mp4",
         "https://cdn.discordapp.com/attachments/643102110375870483/861188652528828436/BryanHussein.jpeg",
-        "https://cdn.discordapp.com/attachments/643102110375870483/851155937049444402/HoodCateGif.gif"]
+        "https://cdn.discordapp.com/attachments/643102110375870483/851155937049444402/HoodCateGif.gif",
+        "https://cdn.discordapp.com/attachments/873982079677894657/874022282765426688/Gaming.webm",
+        "https://media.discordapp.net/attachments/869988741572350003/873869997250850826/image0-18.gif",
+        "https://media.discordapp.net/attachments/869988741572350003/873869997250850826/image0-18.gif\nhttps://tenor.com/view/cat-stealer-gif-21321506",
+        "https://cdn.discordapp.com/attachments/873982079677894657/874023375637450832/cat-bot-very-cool_20210529_3-1.mp4",
+        "https://cdn.discordapp.com/attachments/873982079677894657/874023335539900466/redditsave.com_breaking_bad-b2oom28al3b71-360.mp4",
+        "https://tenor.com/view/loading-discord-loading-discord-boxes-squares-gif-16187521",
+        "https://tenor.com/view/tom-scott-vaping-smoking-coughing-nazarino-gif-20386028",
+        "https://cdn.discordapp.com/attachments/842076301350273069/873203577621975080/dumpy873203450115158046.gif",
+        "https://i.redd.it/2cty5caff3e71.gif",
+        "https://cdn.discordapp.com/attachments/784512616461631498/874755352753733662/trolling.gif"]
     async def mudae(message):
         if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content or ", You can't react to kakera for" in message.content or (", you can't claim for another " in message.content and len(message.content) < 80):
             await message.channel.send(random.choice(mudae.messageList))

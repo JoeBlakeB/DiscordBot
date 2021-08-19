@@ -99,7 +99,7 @@ class crypto(baseClass.baseClass):
         except KeyError:
              pass
         except:
-            traceback.print_exc()
+            pass # shut up shut up shut up traceback.print_exc()
         return .72
 
 crypto.mentionedCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]

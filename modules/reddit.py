@@ -135,7 +135,8 @@ class reddit(baseClass.baseClass):
                     if (nsfwBlock[0] >= len(posts) / 3) or isNSFW:
                         if posts["after"] != None:
                             nsfwBlock[1] = False
-                            nextPage, redirects = await self.getListing(self, url+"&after="+posts["after"])
+                            await message.channel.trigger_typing()
+                            nextPage, redirects = await self.getListing(self, url.replace("limit=30", "limit=100")+"&after="+posts["after"])
                             nextPage = nextPage["data"]
                             if len(nextPage["children"]) != 0:
                                 posts = nextPage
@@ -175,11 +176,12 @@ class reddit(baseClass.baseClass):
             submissionJson = await self.postJson(submissionID)
         except Exception as e:
             await message.add_reaction("⚠️")
-            try:
-                if e == "404":
-                    for emoji in "4️⃣", "0️⃣", emojis["Four"]:
-                        await message.add_reaction(emoji)
-            except Exception: pass
+            if str(e) == "403": react = ["4️⃣", "0️⃣", "3️⃣"]
+            elif str(e) == "404": react = ["4️⃣", "0️⃣", emojis["Four"]]
+            else: react = []
+            for emoji in react:
+                await message.add_reaction(emoji)
+            return
         try:
             isNSFW = message.channel.is_nsfw()
         except:
