@@ -2,11 +2,11 @@
 Description=JoeBlakeB Discord Bot: JoeBot#3658
 
 [Service]
-ExecStartPre=/bin/sh -c 'until ping -W 600 -c1 discord.com; do sleep 10; done;'
-WorkingDirectory=/mounts/SSD/Programming/Discord/JoeBot/
-ExecStart=/mounts/SSD/Programming/Discord/JoeBot/JoeBot.py
-Restart=no
+WorkingDirectory=/home/joe/DiscordBot/
+ExecStart=/usr/local/bin/python3.9 /home/joe/DiscordBot/JoeBot.py
+Restart=always
 KillSignal=SIGINT
+User=joe
 
 [Install]
 WantedBy=network-online.target

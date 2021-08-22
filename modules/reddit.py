@@ -17,7 +17,7 @@ emojis = {
     "RedditGold":   "<:RedditGold:829118524969975809>",
     "Upvote":       "<:upvote:829141166430748724>",
     "Coin":         "<:Coin:829274378881073174>",
-    "Four":         "<:four:829673449110765598>"
+    "Four":         "<:four:877965699765665832>"
 }
 
 class reddit(baseClass.baseClass):

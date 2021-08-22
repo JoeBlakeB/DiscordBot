@@ -86,7 +86,9 @@ class crypto(baseClass.baseClass):
 
     lastGotRate = time.time() - (86400*3)
     oldRate = .72
-    fixerIoAccessKey = keys.read("Fixer.io-Access-Key")
+    try:
+        fixerIoAccessKey = keys.read("Fixer.io-Access-Key")
+    except: pass
 
     def exchangeRate():
         try:

@@ -25,7 +25,7 @@ except:
     if len(sys.argv) > 1:
         token = sys.argv[1]
     if token == None:
-        print("Token not found in token.txt and not in args")
+        print("Token not found in keys.txt (Discord: <token>) and not in args")
         exit(1)
 
 # Change commands prefix for testing
