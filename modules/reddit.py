@@ -88,19 +88,21 @@ class reddit(baseClass.baseClass):
                 posts, history = await self.getListing(self, url)
                 posts = posts["data"]
             except Exception as e:
-                if str(e) == "403":
+                if str(e) in ["403", "404"]:
                     try:
                         reason = ""
-                        reasonPrivate = False
+                        reasonMessageName = "description"
                         reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
-                        if reasonJson["reason"] == "PRIVATE":
-                            reasonPrivate = True
-                            if reasonJson["data"]["description"] != "":
-                                reason = "\n> " + reasonJson["data"]["description"].replace("\n\n", "\n").replace("\n", "\n> ")
+                        if reasonJson["reason"].lower() == "private":
+                            reason = "because it is set to private."
+                        elif reasonJson["reason"].lower() == "banned":
+                            reason = f"because {'they have'*int(not isSubreddit)}{'it has'*int(isSubreddit)} been banned."
+                            reasonMessageName = "ban_message"
+                        if reasonJson["data"][reasonMessageName] != "":
+                            reason += "\n> " + (reasonJson["data"][reasonMessageName].replace("\n\n", "\n").replace("\n", "\n> ")
+                                .replace("](", ": ").replace("[", "").replace(")", ""))
                     except: pass
-                    await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{', it may be set to private. (Error 403)'*int(not reasonPrivate)}{' because it is set to private.'*int(reasonPrivate)}{reason}")
-                elif str(e) == "404":
-                    await message.channel.send(f"That {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} does not exist. (Error 404)")
+                    await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} {reason}")
                 else:
                     await message.channel.send("Error: " + str(e))
                 return
