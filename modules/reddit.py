@@ -93,8 +93,12 @@ class reddit(baseClass.baseClass):
                         reason = ""
                         reasonMessageName = "description"
                         reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
+                        print(reasonJson)
                         if reasonJson["reason"].lower() == "private":
                             reason = "because it is set to private."
+                        elif reasonJson["reason"].lower() == "quarantined":
+                            reason = "because it has been quarantined and a reddit account with verified email is required to view it."
+                            reasonMessageName = "quarantineMessage"
                         elif reasonJson["reason"].lower() == "banned":
                             reason = f"because {'they have'*int(not isSubreddit)}{'it has'*int(isSubreddit)} been banned."
                             reasonMessageName = "ban_message"
