@@ -277,7 +277,7 @@ class reddit(baseClass.baseClass):
                         optionVoteLine = "█" * int((voteBlocks-(voteBlocks%8))/8)
                         optionVoteLine += "█▏▎▍▌▋▊▉"[voteBlocks%8]
                         voteCounts += optionVoteLine
-                except AttributeError:
+                except (AttributeError, KeyError) as e:
                     pollData += "\n> Error getting the option vote counts" + " as the vote has not closed yet"*int(open) + "."
                 else:
                     pollData += voteCounts
@@ -386,22 +386,22 @@ class reddit(baseClass.baseClass):
 
         async def load():
             try:
-                with bz2.open("tmp/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
+                with bz2.open("data/recentSubmissions.txt.bz2", "rb") as recentSubmissionsFile:
                     reddit.recentPosts.recentPosts = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
             except FileNotFoundError:
                 try:
-                    with bz2.open("tmp/recentSubmissions.txt.bz2.bak", "rb") as recentSubmissionsFile:
+                    with bz2.open("data/recentSubmissions.txt.bz2.bak", "rb") as recentSubmissionsFile:
                         reddit.recentPosts.recentPosts = json.loads(str(recentSubmissionsFile.read(), "utf-8"))
                 except FileNotFoundError: pass
             reddit.recentPosts.clean()
 
         async def save():
-            os.makedirs("tmp", exist_ok=True)
-            try: os.rename("tmp/recentSubmissions.txt.bz2", "tmp/recentSubmissions.txt.bz2.bak")
+            os.makedirs("data", exist_ok=True)
+            try: os.rename("data/recentSubmissions.txt.bz2", "data/recentSubmissions.txt.bz2.bak")
             except: pass
-            with bz2.open("tmp/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
+            with bz2.open("data/recentSubmissions.txt.bz2", "wb") as recentSubmissionsFile:
                 recentSubmissionsFile.write(bytes(json.dumps(reddit.recentPosts.recentPosts, indent=4), "utf-8"))
-            try: os.remove("tmp/recentSubmissions.txt.bz2.bak")
+            try: os.remove("data/recentSubmissions.txt.bz2.bak")
             except: pass
 
         async def autosave():

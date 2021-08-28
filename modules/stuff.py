@@ -27,9 +27,6 @@ emojis = {
 
 class stuff(baseClass.baseClass, baseClass.baseUtils):
     emojiRegex = re.compile("<(a|)(:|;)(.*)(:|;)(\d*)>")
-    lowerEmojis = {}
-    for emoji in emojis:
-        lowerEmojis[emoji.lower()] = emojis[emoji]
     async def say(message):
         messageContent = "say ".join(message.content.split("say ")[1:])
         if (len(messageContent) >= 128 and ("\n>" in messageContent)) or len(messageContent) >= 1024:
@@ -38,7 +35,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await message.channel.send(messageContent.replace(";", ":"))
         else:
             await message.channel.send(messageContent)
-        await stuff.deleteMessage(message)
 
     async def kill(message):
         whoToKill = "kill ".join(message.content.split("kill ")[1:]).split(" as ")[0]
@@ -55,14 +51,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await message.channel.send((murderer + gun + whoToKill).replace(";", ":"))
         else:
             await message.channel.send(murderer + gun + whoToKill)
-        await stuff.deleteMessage(message)
-
-    bitlyUrls = ["3chJDM7", "3t3GQvM", "36gTVIs", "36kYhyj", "2KWKKWh", "2MeJUVt", "3iVIj2F", "2YpG522",
-        "2NIS6Oa", "2Yl6zBI", "3qVKCFR", "3iVUpJc", "3j6gXap", "3ae9aD1", "2YkFTRB", "3cic5xi",
-        "3pvyOtI", "39nIz7x", "3r3UOfB", "36C2Nsz", "39mMKjT", "36nD07g", "3t7GSmG", "3oxL5MY",
-        "3oqE8gC", "3ahTgrE", "3iTpTQ0", "2YtoPZH", "3t5V3sk"]
-    async def porn(message):
-        await message.channel.send("<https://bit.ly/" + random.choice(stuff.bitlyUrls) + ">")
 
     async def goodBot(message):
         if "good" in message.content:
@@ -73,41 +61,27 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
     youKnowIHadToDoItToEmBody = "\n<:YouKnowIHadToL2:832746970283245588><:YouKnowIHadToC2:832746970103283762><:YouKnowIHadToR2:832746969906675753>\n<:YouKnowIHadToL3:832746969679134731><:YouKnowIHadToC3:832746969964609546><:YouKnowIHadToR3:832746970103676938>\n<:YouKnowIHadToL4:832746969986236457><:YouKnowIHadToC4:832746969566937140><:YouKnowIHadToR4:832746970254671902>"
     youKnowLeft = "<:YouKnowIHadToL1:832746970544078889>"
     youKnowRight = "<:YouKnowIHadToR1:832746970001965056>"
-    async def youKnowIHadToDoItToEm(message, messageContentLower):
+    async def youKnowIHadToDoItToEm(message, messageContentLower, bot, mentioned=0):
         try:
-            text = messageContentLower[23:].strip()
+            text = messageContentLower[23+mentioned:].strip()
         except:
             text = ""
-        if len(text) >= 64:
-            return await message.add_reaction("❌")
-        if len(text) == 0:
-            return await message.channel.send(stuff.youKnowIHadToDoItToEmBody[1:])
-        if text in ["orig", "original"]:
-            head = "<:YouKnowIHadToC1:832746969822527509>"
-        elif text == "random":
-            head = random.choice(list(emojis.values()))
-        elif text.replace(":", "") in stuff.lowerEmojis:
-            head =  + stuff.lowerEmojis[text.replace(":", "")]
-        else:
-            if stuff.emojiRegex.match(text):
-                head = text.replace(";", ":")
-            else:
-                head = text
-        await message.channel.send(stuff.youKnowLeft + head + stuff.youKnowRight + stuff.youKnowIHadToDoItToEmBody)
-        await stuff.deleteMessage(message)
-
-    doYourWorkBitchRecent = {}
-    async def doYourWorkBitch(message):
-        if random.randint(1,3) != 2:
-            return
         try:
-            if stuff.doYourWorkBitchRecent[message.author.id] < time.time() - random.randint(20, 600):
-                stuff.doYourWorkBitchRecent[message.author.id] = time.time()
+            if stuff.emojiRegex.match(text):
+                id = int(text.replace(";", ":").split(":")[-1][:-1])
+                head = bot.client.get_emoji(id)
             else:
-                return
-        except:
-            stuff.doYourWorkBitchRecent[message.author.id] = time.time()
-        await message.channel.send("do your work " + random.choice(["sussy baka", "bitch", "nigger", "baka", "retard", "cunt"]))
+                try:
+                    id = int(text)
+                    head = bot.client.get_emoji(id)
+                except:
+                    head = discord.utils.get(message.guild.emojis, name=text)
+        except: head = None
+        if head == None:
+            head = "<:YouKnowIHadToC1:832746969822527509>"
+            if len(text) != 0:
+                await message.add_reaction("❌")
+        await message.channel.send(stuff.youKnowLeft + str(head) + stuff.youKnowRight + stuff.youKnowIHadToDoItToEmBody)
 
     async def tomato(message):
         if isinstance(message.channel, discord.channel.DMChannel):
@@ -134,11 +108,9 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
-stuff.mentionedCommands["porn(?!\S)"] = [stuff.porn, ["message"], {}]
 stuff.mentionedCommands["(good|bad)( |)(bot|boy)$"] = [stuff.goodBot, ["message"], {}]
-stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower"], {}]
-stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
-stuff.generalCommands += [["authorDisplayNameRegex", re.compile("(.*)ඞ(.*)"), stuff.doYourWorkBitch, ["message"], {}]]
+stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower", "bot"], {}]
+stuff.mentionedCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower", "bot"], {"mentioned": 6}]
 stuff.mentionedCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
 stuff.exclamationCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
 

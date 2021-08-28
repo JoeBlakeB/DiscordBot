@@ -6,6 +6,7 @@ class userJoinLeave:
     leaveMessages = ["{name} leaving is kinda poggers.", "Yay, {name} left", "Bye {name}"]
 
     async def __new__(self, member, joined):
+        if member.guild.id != 643102110375870475: return
         if joined: messageList = self.joinMessages
         else: messageList = self.leaveMessages
 

@@ -9,9 +9,9 @@ class baseClass:
     help = {}
 
 class baseUtils:
-    async def deleteMessage(message, time=3):
+    async def deleteMessage(message, time=3, reaction="✅"):
         try:
-            await message.add_reaction("✅")
+            await message.add_reaction(reaction)
             await asyncio.sleep(time)
             await message.delete()
         except Exception:

@@ -87,6 +87,7 @@ class mudae(baseClass.baseClass):
         "https://cdn.discordapp.com/attachments/784512616461631498/874755352753733662/trolling.gif",
         "https://tenor.com/view/nig-nibba-nigmode-dzsordzs-szia-gif-21468466\nhttps://tenor.com/view/ger-nibba-nigmode-dzsordzs-sz%C3%ADvd-ki-af-gif-21468467"]
     async def mudae(message):
+        if member.guild.id != 643102110375870475: return
         if ( "the roulette is limited to" in message.content and "uses per hour" in message.content and "Upvote Mudae to reset the timer: **$vote**. Twitter" in message.content ) or message.content == "Command under maintenance!\n(For **5** minutes, weekly maintenance)" or "For this server, you can claim once per interval of 3h. The next interval begins in" in message.content or "One rolls reset per interval.\nTime left:" in message.content or ", You can't react to kakera for" in message.content or (", you can't claim for another " in message.content and len(message.content) < 80):
             await message.channel.send(random.choice(mudae.messageList))
 

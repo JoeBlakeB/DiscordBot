@@ -69,4 +69,4 @@ class minecraftServerLog(baseClass.baseClass):
         if say != "":
             await channel.send(say.strip())
 
-minecraftServerLog.startTasks += [[minecraftServerLog.monitor]]
+# minecraftServerLog.startTasks += [[minecraftServerLog.monitor]]
