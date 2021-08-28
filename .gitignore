@@ -2,5 +2,6 @@ keys.txt
 __pycache__/
 btec/
 tmp/
+data/
 cursedSubreddits.txt
 config.txt
