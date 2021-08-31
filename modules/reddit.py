@@ -303,8 +303,8 @@ class reddit(baseClass.baseClass):
                     imageUrl = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
                     submissionData += f"\n{spoilerLink}{imageUrl}{spoilerText}"
             except Exception as e:
-                e = e.replace("\n", "\n> ")
-                submissionData = f"\n> {e}"
+                error = str(e).replace("\n", "\n> ")
+                submissionData = f"An error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}\n> {error}"
         elif postHint == "hosted:video": # Video post (not stuff like youtube)
             try:
                 try:
