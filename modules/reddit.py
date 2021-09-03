@@ -126,21 +126,17 @@ class reddit(baseClass.baseClass):
 
         # Select post to send to channel
         nsfwBlock = [0, False] # sfw, nsfw
-        while getNewPost:
+        if getNewPost:
             allListings = [posts]
+            forceAllowPinned = bool(len(posts["children"]) <= 8)
+        while getNewPost:
             try:
-                for post in posts["children"]:
-                    if self.recentPosts.check(post["data"]["id"], str(message.channel.id)) and not (post["data"]["stickied"] and not (
-                            "pinned" in message.content.lower() or "stickied" in message.content.lower())):
-                        if post["data"]["over_18"] and not isNSFW:
-                            nsfwBlock[1] = True
-                        else:
-                            self.recentPosts.append(post["data"]["id"], str(message.channel.id))
-                            await self.postSubmission(self, message, post["data"])
-                            self.cache.addToCache(self, url, sortMethod, allListings)
-                            break
-                    elif not post["data"]["over_18"] and not isNSFW:
-                        nsfwBlock[0] += 1
+                postFound, postData, nsfwBlock = self.findValidPost(self, posts["children"], message, isNSFW, nsfwBlock, forceAllowPinned)
+                if type(postFound) == bool:
+                    self.recentPosts.append(postData["id"], str(message.channel.id))
+                    await self.postSubmission(self, message, postData)
+                    self.cache.addToCache(self, url, sortMethod, allListings)
+                    break
                 else:
                     # Try next page
                     # only if there are enough sfw posts in results if its a sfw channel
@@ -154,7 +150,10 @@ class reddit(baseClass.baseClass):
                                 posts = nextPage
                                 allListings.append(posts)
                                 continue
-                    await message.channel.send(f"Could not get a{'nother'*int(bool(len(posts['children'])) and not nsfwBlock[1])}{' SFW'*int(nsfwBlock[1])} post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
+                    if not forceAllowPinned:
+                        forceAllowPinned = True
+                        continue
+                    await message.channel.send(f"Could not get a{'nother'*postFound}{' SFW'*int(nsfwBlock[1])} post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
                 break
             except:
                 await message.channel.send("An error has occured while trying to get a post from that sub.")
@@ -162,6 +161,21 @@ class reddit(baseClass.baseClass):
                 break
         self.cache.cleanCache(self)
         await self.recentPosts.autosave()
+
+    def findValidPost(self, posts, message, isNSFW, nsfwBlock=[0,False], forceAllowPinned=False):
+        alreadyGotAPost = 0
+        for post in posts:
+            if forceAllowPinned or (not (post["data"]["stickied"] and not ("pinned" in message.content.lower() or "stickied" in message.content.lower()))):
+                if post["data"]["over_18"] and not isNSFW:
+                        nsfwBlock[1] = True
+                else:
+                    if self.recentPosts.check(post["data"]["id"], str(message.channel.id)):
+                        return True, post["data"], nsfwBlock
+                    else:
+                        alreadyGotAPost = 1
+            elif not post["data"]["over_18"] and not isNSFW:
+                nsfwBlock[0] += 1
+        return alreadyGotAPost, None, nsfwBlock
 
     async def getListing(self, url, anyStatus=False):
         async with aiohttp.ClientSession() as session:
@@ -294,6 +308,31 @@ class reddit(baseClass.baseClass):
                 submissionData = submissionData[:1956-(len(submissionMetadata)+len(pollData))] + spoilerText + "\n> (Discord max character limit reached)" + pollData
             else:
                 submissionData += pollData
+        elif submissionJson["url"] == "https://www.reddit.com" + submissionJson["permalink"]: # Title only text posts
+            submissionData = ""
+        elif (re.match("(https:\/\/www.reddit.com|)\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submissionJson["url"]) or "crosspost_parent" in submissionJson) and not crosspost: # Crossposts
+            if "crosspost_parent" in submissionJson:
+                submissionID = submissionJson["crosspost_parent"]
+                if submissionID[:3] == "t3_":
+                    submissionID = submissionID[3:]
+            else:
+                if submissionJson["url"][:3] == "/r/":
+                    submissionJson["url"] = "https://www.reddit.com" + submissionJson["url"]
+                submissionID = submissionJson["url"].split("/comments/")[1].split("/")[0]
+            try:
+                submission = await self.postJson(submissionID)
+                crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
+                crosspostLink = f"\n> \n> **Crosspost:** "
+                if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
+                    submissionData = crosspostLink + crosspostData[:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
+                else:
+                    submissionData = crosspostLink + crosspostData[2:]
+            except Exception as e:
+                if str(e) in ["403", "404"]:
+                    submissionData = f"\n> \n> HTTP error {str(e)} while getting crosspost.\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                else:
+                    submissionData = "\n\n> An error has occured"
+                    print(traceback.format_exc(), flush=True)
         elif submissionJson["url"].startswith("https://www.reddit.com/gallery/"): # reddit galleries
             try:
                 submissionData = ""
@@ -302,9 +341,9 @@ class reddit(baseClass.baseClass):
                     except: previewURL = submissionJson["media_metadata"][item["media_id"]]["s"]["gif"]
                     imageUrl = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
                     submissionData += f"\n{spoilerLink}{imageUrl}{spoilerText}"
-            except Exception as e:
-                error = str(e).replace("\n", "\n> ")
-                submissionData = f"An error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}\n> {error}"
+            except Exception:
+                submissionData = f"\n> An error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                print("An error has occured getting gallery data for post", submissionJson["id"], traceback.format_exc(), flush=True)
         elif postHint == "hosted:video": # Video post (not stuff like youtube)
             try:
                 try:
@@ -319,22 +358,6 @@ class reddit(baseClass.baseClass):
             except Exception as e:
                 e = e.replace("\n", "\n> ")
                 submissionData = f"\n> {e}\n{spoilerLink}{submissionJson['url']}{spoilerText}"
-        elif submissionJson["url"] == "https://www.reddit.com" + submissionJson["permalink"]: # Nothing, should never be used
-            submissionData = ""
-        elif re.match("(https:\/\/www.reddit.com|)\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submissionJson["url"]) and not crosspost: # Crossposts
-            if submissionJson["url"][:3] == "/r/":
-                submissionJson["url"] = "https://www.reddit.com" + submissionJson["url"]
-            try:
-                submissionID = submissionJson["url"].split("/comments/")[1].split("/")[0]
-                submission = await self.postJson(submissionID)
-                crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
-                crosspostLink = f"\n> \n> Crosspost: <https://redd.it/{submissionID}>\n"
-                if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
-                    submissionData = crosspostLink + crosspostData[:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
-                else:
-                    submissionData = crosspostLink + crosspostData
-            except asyncprawcore.exceptions.NotFound:
-                submissionData = f"\n> \n> HTTP error 404 while getting crosspost.\n{spoilerLink}{submissionJson['url']}{spoilerText}"
         else: # Other links
             submissionData = f"\n{spoilerLink}{submissionJson['url']}{spoilerText}"
 
@@ -425,20 +448,21 @@ class reddit(baseClass.baseClass):
             try:
                 if time.time() > self.cache.cache[url][1]:
                     return False
-                for post in self.cache.cache[url][0]:
-                    if self.recentPosts.check(post["id"], str(message.channel.id)) and not (post["stickied"] and not (
-                            "pinned" in message.content.lower() or "stickied" in message.content.lower())) and not (post["over_18"] and not isNSFW):
-                        self.recentPosts.append(post["id"], str(message.channel.id))
-                        await self.postSubmission(self, message, post)
-                        return True
-            except: pass
+                postFound, postData = self.findValidPost(self, self.cache.cache[url][0], message, isNSFW)[:-1]
+                if type(postFound) == bool:
+                    self.recentPosts.append(postData["id"], str(message.channel.id))
+                    await self.postSubmission(self, message, postData)
+                    return True
+            except KeyError: pass
+            except:
+                print("An error has occured in the reddit post cache", traceback.format_exc(), flush=True)
             return False
 
         def addToCache(self, url, sortMethod, allListings):
             posts = []
             for listing in allListings:
                 for post in listing["children"]:
-                    posts.append(post["data"])
+                    posts.append(post)
             self.cache.cache[url] = [posts, time.time() + self.cache.keepInCacheTime[sortMethod]]
 
         def cleanCache(self):
