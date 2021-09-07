@@ -26,6 +26,7 @@ class reddit(baseClass.baseClass):
         "\n\nYou can also define the time range for those searches:\n<@!796433833296658442> r/<SUBREDDIT> top month"+
         "\n\nIf you want to search for a post, say search then say the search terms:\n<@!796433833296658442> r/<SUBREDDIT> search <SEARCH TERMS>"+
         "\n\nTo get posts from users instead of subreddits just say u/ instead of r/"+
+        "\n\nTo get information about a subreddit, say its name then about. For example: <@!796433833296658442> r/196 about"+
         "\n\nTo use JoeBot in DMs, remove the prefix, for example r/<SUBREDDIT> instead of !r/<SUBREDDIT>"),
         "thumbnail":"https://cdn.discordapp.com/emojis/690344425356001320.png"}
     async def reddit(self, message):
@@ -39,10 +40,94 @@ class reddit(baseClass.baseClass):
         {"relevant": False, "hot": False, "new":False, "top":True}]
     sortTimes = ["all", "year", "month", "week", "day", "hour"]
 
+    async def about(self, message, subredditName, isSubreddit):
+        try:
+            info, doesntExist = await self.getListing(self, f"https://www.reddit.com/{'user'*int(not isSubreddit)}{'r'*int(isSubreddit)}/{subredditName}/about.json")
+            if doesntExist:
+                raise Exception("404")
+            if isSubreddit:
+                subreddit = info["data"]
+                nsfw = subreddit["over18"]
+            else:
+                subreddit = info["data"]["subreddit"]
+                nsfw = subreddit["over_18"]
+            if nsfw and not self.isNSFW(message):
+                return await message.channel.send("You can not get information about that user because they are NSFW, try again in a NSFW channel or in your DMs.")
+
+            # Badges
+            badges = ""
+            if nsfw: badges += "🔞"
+            if not isSubreddit:
+                if info["data"]["verified"]: badges += "☑️"
+                if info["data"]["is_gold"]: badges += emojis["RedditGold"]
+                if info["data"]["is_mod"]: badges += "🛡️"
+
+            # Name
+            if subreddit["title"]:
+                aboutMessage = "> **"+subreddit["title"]+"** " + badges + " ("+subreddit["display_name_prefixed"]+")"
+            else:
+                aboutMessage = "> **"+subreddit["display_name_prefixed"]+"** " + badges
+
+            # Info
+            if isSubreddit:
+                aboutMessage += "\n> **Members:** {0:,} ({1:,} online)".format(subreddit["subscribers"], subreddit["accounts_active"])
+            else:
+                aboutMessage += "\n> **Karma:** {0:,} ({1} {2:,} / 🗨️ {3:,})".format(info["data"]["total_karma"], emojis["Upvote"], info["data"]["link_karma"], info["data"]["comment_karma"])
+            aboutMessage += "\n> **Cake Day:** " + datetime.datetime.fromtimestamp(info["data"]["created_utc"]).strftime("%Y-%m-%d")
+
+            # Description
+            if subreddit["public_description"] != "":
+                aboutMessage += "\n> "+subreddit["public_description"].replace("\n", "\n> ")
+
+            # Images
+            if isSubreddit:
+                imgNames = [["**Icon:** ", subreddit["community_icon"]], ["**Banner:** ", subreddit["banner_background_image"]]]
+            else:
+                imgNames = [["**Icon:** ", subreddit["icon_img"]], ["**Banner:** ", subreddit["banner_img"]]]
+                if info["data"]["snoovatar_img"]:
+                    imgNames[0] = ["**Snoovatar:** ", info["data"]["snoovatar_img"]]
+            for i in imgNames:
+                if i[1]:
+                    aboutMessage += "\n> " + i[0] + i[1].split("?")[0]
+
+            await message.channel.send(aboutMessage)
+        except Exception as e:
+            if str(e) in ["403", "404"]:
+                reason = await self.getSubredditUnavailableReason(self, subredditName, isSubreddit, self.isNSFW(message))
+                await message.channel.send(f"Could not get information about that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} {reason}")
+            else:
+                print(traceback.format_exc(), flush=True)
+
+    def isNSFW(message):
+        try:
+            return message.channel.is_nsfw()
+        except:
+            return True
+
+    async def getSubredditUnavailableReason(self, subredditName, isSubreddit, isNSFW):
+        try:
+            reason = ""
+            reasonMessageName = "description"
+            reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
+            if reasonJson["reason"].lower() == "private":
+                reason = "because it is set to private."
+            elif reasonJson["reason"].lower() == "quarantined":
+                reason = "because it has been quarantined and a reddit account with verified email is required to view it."
+                reasonMessageName = "quarantineMessage"
+            elif reasonJson["reason"].lower() == "banned":
+                reason = f"because {'they have'*int(not isSubreddit)}{'it has'*int(isSubreddit)} been banned."
+                reasonMessageName = "ban_message"
+            if reasonJson["data"][reasonMessageName] != "":
+                reason += "\n> " + (reasonJson["data"][reasonMessageName].replace("\n\n", "\n").replace("\n", "\n> ").replace("](", ": ").replace("[", "").replace(")", ""))
+        except: pass
+        return reason
+
     async def subreddit(self, message, commandContent, isSubreddit):
         # Get what user wants from message
         subredditName = commandContent.split()[0][2:]
         restOfMessage = commandContent.split()[1:]
+        if restOfMessage == ["info"] or restOfMessage == ["about"]:
+            return await self.about(self, message, subredditName, isSubreddit)
         if "search" in restOfMessage[:-1]:
             search = True
             searchTerm = 0
@@ -67,10 +152,7 @@ class reddit(baseClass.baseClass):
         else:
             sortTime = self.sortTimes[0]
 
-        try:
-            isNSFW = message.channel.is_nsfw()
-        except:
-            isNSFW = True
+        isNSFW = self.isNSFW(message)
 
         # Convert that to a URL
         url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
@@ -89,24 +171,10 @@ class reddit(baseClass.baseClass):
                 posts = posts["data"]
             except Exception as e:
                 if str(e) in ["403", "404"]:
-                    try:
-                        reason = ""
-                        reasonMessageName = "description"
-                        reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
-                        print(reasonJson)
-                        if reasonJson["reason"].lower() == "private":
-                            reason = "because it is set to private."
-                        elif reasonJson["reason"].lower() == "quarantined":
-                            reason = "because it has been quarantined and a reddit account with verified email is required to view it."
-                            reasonMessageName = "quarantineMessage"
-                        elif reasonJson["reason"].lower() == "banned":
-                            reason = f"because {'they have'*int(not isSubreddit)}{'it has'*int(isSubreddit)} been banned."
-                            reasonMessageName = "ban_message"
-                        if reasonJson["data"][reasonMessageName] != "":
-                            reason += "\n> " + (reasonJson["data"][reasonMessageName].replace("\n\n", "\n").replace("\n", "\n> ")
-                                .replace("](", ": ").replace("[", "").replace(")", ""))
-                    except: pass
+                    reason = await self.getSubredditUnavailableReason(self, subredditName, isSubreddit, isNSFW)
                     await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} {reason}")
+                elif str(e) == "503":
+                    await message.channel.send("HTTP Error 503, Reddit is unavailable.")
                 else:
                     await message.channel.send("Error: " + str(e))
                 return
