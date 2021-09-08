@@ -17,7 +17,8 @@ emojis = {
     "RedditGold":   "<:RedditGold:829118524969975809>",
     "Upvote":       "<:upvote:829141166430748724>",
     "Coin":         "<:Coin:829274378881073174>",
-    "Four":         "<:four:877965699765665832>"
+    "Four":         "<:four:877965699765665832>",
+    "RedShield":    "<:RedShield:885067355049316384>"
 }
 
 class reddit(baseClass.baseClass):
@@ -301,6 +302,15 @@ class reddit(baseClass.baseClass):
             extras += ["**NSFW**"]
             spoiler = True
             title = "🔞 " + title
+        if submissionJson["locked"]:
+            title = "🔒 " + title
+        if "author_cakeday" in submissionJson:
+            if submissionJson["author_cakeday"]:
+                title = "🍰 " + title
+        if submissionJson["distinguished"] == "moderator":
+            title = "🛡 ️" + title
+        elif submissionJson["distinguished"] == "admin":
+            title = emojis["RedShield"] + " " + title
         if submissionJson["link_flair_text"]:
             extras += ["({0})".format(submissionJson["link_flair_text"])]
         extras = " ".join(extras)
@@ -392,7 +402,7 @@ class reddit(baseClass.baseClass):
                 crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
                 crosspostLink = f"\n> \n> **Crosspost:** "
                 if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
-                    submissionData = crosspostLink + crosspostData[:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
+                    submissionData = crosspostLink + crosspostData[2:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
                 else:
                     submissionData = crosspostLink + crosspostData[2:]
             except Exception as e:
