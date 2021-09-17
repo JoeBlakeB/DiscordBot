@@ -41,6 +41,8 @@ class reddit(baseClass.baseClass):
         {"relevant": False, "hot": False, "new":False, "top":True}]
     sortTimes = ["all", "year", "month", "week", "day", "hour"]
 
+    userAgent = "JoeBlakeB-Discord-Bot/1.0 (https://github.com/JoeBlakeB/DiscordBot)"
+
     async def about(self, message, subredditName, isSubreddit):
         try:
             info, doesntExist = await self.getListing(self, f"https://www.reddit.com/{'user'*int(not isSubreddit)}{'r'*int(isSubreddit)}/{subredditName}/about.json")
@@ -124,6 +126,7 @@ class reddit(baseClass.baseClass):
         return reason
 
     async def subreddit(self, message, commandContent, isSubreddit):
+        return await message.channel.send("https://cdn.discordapp.com/attachments/784512616461631498/888325637402673152/Screenshot_2021-09-17_082846.png")
         # Get what user wants from message
         subredditName = commandContent.split()[0][2:]
         restOfMessage = commandContent.split()[1:]
@@ -213,6 +216,7 @@ class reddit(baseClass.baseClass):
                         if posts["after"] != None:
                             nsfwBlock[1] = False
                             await message.channel.trigger_typing()
+                            await asyncio.sleep(1)
                             nextPage, redirects = await self.getListing(self, url.replace("limit=30", "limit=100")+"&after="+posts["after"])
                             nextPage = nextPage["data"]
                             if len(nextPage["children"]) != 0:
@@ -248,7 +252,7 @@ class reddit(baseClass.baseClass):
 
     async def getListing(self, url, anyStatus=False):
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
+            async with session.get(url, headers = {"User-Agent": self.userAgent}) as resp:
                 if resp.status != 200 and not anyStatus:
                     raise Exception(str(resp.status))
                 response = await resp.text()
@@ -273,6 +277,7 @@ class reddit(baseClass.baseClass):
             await message.add_reaction("⚠️")
             if str(e) == "403": react = ["4️⃣", "0️⃣", "3️⃣"]
             elif str(e) == "404": react = ["4️⃣", "0️⃣", emojis["Four"]]
+            elif str(e) == "429": react = ["4️⃣", "2️⃣", "9️⃣"]
             else: react = []
             for emoji in react:
                 await message.add_reaction(emoji)
@@ -447,7 +452,7 @@ class reddit(baseClass.baseClass):
     async def postJson(submissionID):
         url = "https://reddit.com/" + submissionID + ".json"
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
+            async with session.get(url, headers = {"User-Agent": reddit.userAgent}) as resp:
                 if resp.status != 200:
                     raise Exception(str(resp.status))
                 response = await resp.text()
