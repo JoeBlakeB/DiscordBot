@@ -17,7 +17,7 @@ emojis = {
     "RedditGold":   "<:RedditGold:829118524969975809>",
     "Upvote":       "<:upvote:829141166430748724>",
     "Coin":         "<:Coin:829274378881073174>",
-    "Four":         "<:four:877965699765665832>",
+    "Four":         "<:404_4:888494476681707530>",
     "RedShield":    "<:RedShield:885067355049316384>"
 }
 
@@ -41,11 +41,9 @@ class reddit(baseClass.baseClass):
         {"relevant": False, "hot": False, "new":False, "top":True}]
     sortTimes = ["all", "year", "month", "week", "day", "hour"]
 
-    userAgent = "JoeBlakeB-Discord-Bot/1.0 (https://github.com/JoeBlakeB/DiscordBot)"
-
     async def about(self, message, subredditName, isSubreddit):
         try:
-            info, doesntExist = await self.getListing(self, f"https://www.reddit.com/{'user'*int(not isSubreddit)}{'r'*int(isSubreddit)}/{subredditName}/about.json")
+            info, doesntExist = await self.redditGet.listing(f"https://oauth.reddit.com/{'user'*int(not isSubreddit)}{'r'*int(isSubreddit)}/{subredditName}/about?raw_json=1&api_type=json")
             if doesntExist:
                 raise Exception("404")
             if isSubreddit:
@@ -111,7 +109,7 @@ class reddit(baseClass.baseClass):
         try:
             reason = ""
             reasonMessageName = "description"
-            reasonJson = (await self.getListing(self, f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
+            reasonJson = (await self.redditGet.listing(f"https://gateway.reddit.com/desktopapi/v1/subreddits/{subredditName}?{'&include_over_18=on'*int(isNSFW)}", anyStatus=True))[0]
             if reasonJson["reason"].lower() == "private":
                 reason = "because it is set to private."
             elif reasonJson["reason"].lower() == "quarantined":
@@ -126,7 +124,6 @@ class reddit(baseClass.baseClass):
         return reason
 
     async def subreddit(self, message, commandContent, isSubreddit):
-        return await message.channel.send("https://cdn.discordapp.com/attachments/784512616461631498/888325637402673152/Screenshot_2021-09-17_082846.png")
         # Get what user wants from message
         subredditName = commandContent.split()[0][2:]
         restOfMessage = commandContent.split()[1:]
@@ -159,11 +156,11 @@ class reddit(baseClass.baseClass):
         isNSFW = self.isNSFW(message)
 
         # Convert that to a URL
-        url = f"https://www.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
+        url = f"https://oauth.reddit.com/{('user'*int(not isSubreddit))+('r'*int(isSubreddit))}/{subredditName}/{'submitted/'*int(not isSubreddit)}"
         if search:
-            url += f"search.json?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30"
+            url += f"search?q={urllib.parse.quote(searchTerm, safe='')}&restrict_sr=1&sort={sortMethod}&t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30&raw_json=1&api_type=json"
         else:
-            url += f"{sortMethod}.json?t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30"
+            url += f"{sortMethod}?t={sortTime}{'&include_over_18=on'*int(isNSFW)}&limit=30&raw_json=1&api_type=json"
 
         # check cache and if its in cache, use that instead of requesting again
         getNewPost = not await self.cache.tryCache(self, message, url, isNSFW)
@@ -171,7 +168,7 @@ class reddit(baseClass.baseClass):
         # Get the search from the URL
         if getNewPost:
             try:
-                posts, history = await self.getListing(self, url)
+                posts, history = await self.redditGet.listing(url)
                 posts = posts["data"]
             except Exception as e:
                 if str(e) in ["403", "404"]:
@@ -217,7 +214,7 @@ class reddit(baseClass.baseClass):
                             nsfwBlock[1] = False
                             await message.channel.trigger_typing()
                             await asyncio.sleep(1)
-                            nextPage, redirects = await self.getListing(self, url.replace("limit=30", "limit=100")+"&after="+posts["after"])
+                            nextPage, redirects = await self.redditGet.listing(url.replace("limit=30", "limit=100")+"&after="+posts["after"])
                             nextPage = nextPage["data"]
                             if len(nextPage["children"]) != 0:
                                 posts = nextPage
@@ -250,15 +247,6 @@ class reddit(baseClass.baseClass):
                 nsfwBlock[0] += 1
         return alreadyGotAPost, None, nsfwBlock
 
-    async def getListing(self, url, anyStatus=False):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers = {"User-Agent": self.userAgent}) as resp:
-                if resp.status != 200 and not anyStatus:
-                    raise Exception(str(resp.status))
-                response = await resp.text()
-        responseJson = json.loads(response)
-        return responseJson, bool(resp.history)
-
     async def url(self, message, messageContentLower, exclamation):
         try:
             try:
@@ -272,7 +260,7 @@ class reddit(baseClass.baseClass):
             else:
                 submissionID = messageContentLower.split("/comments/")[1].split("/")[0]
             # get post from id
-            submissionJson = await self.postJson(submissionID)
+            submissionJson = await self.redditGet.post(submissionID)
         except Exception as e:
             await message.add_reaction("⚠️")
             if str(e) == "403": react = ["4️⃣", "0️⃣", "3️⃣"]
@@ -403,7 +391,7 @@ class reddit(baseClass.baseClass):
                     submissionJson["url"] = "https://www.reddit.com" + submissionJson["url"]
                 submissionID = submissionJson["url"].split("/comments/")[1].split("/")[0]
             try:
-                submission = await self.postJson(submissionID)
+                submission = await self.redditGet.post(submissionID)
                 crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
                 crosspostLink = f"\n> \n> **Crosspost:** "
                 if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
@@ -448,16 +436,6 @@ class reddit(baseClass.baseClass):
             return submissionMetadata + submissionData
         else:
             await message.channel.send(submissionMetadata + submissionData)
-
-    async def postJson(submissionID):
-        url = "https://reddit.com/" + submissionID + ".json"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers = {"User-Agent": reddit.userAgent}) as resp:
-                if resp.status != 200:
-                    raise Exception(str(resp.status))
-                response = await resp.text()
-                postJson = json.loads(response)
-                return postJson[0]["data"]["children"][0]["data"]
 
     class recentPosts:
         recentPosts = {}
@@ -525,7 +503,7 @@ class reddit(baseClass.baseClass):
     class cache:
         cache = {}
         # {"url": [listOfPostJsons, expiresTimestamp]}
-        keepInCacheTime = {"hot":600, "new":60, "rising":180, "top":1800, "controversial":900, "relevant": 1200}
+        keepInCacheTime = {"hot":1800, "new":120, "rising":900, "top":3600, "controversial":1800, "relevant": 1800}
 
         async def tryCache(self, message, url, isNSFW):
             try:
@@ -553,6 +531,52 @@ class reddit(baseClass.baseClass):
             for url in list(self.cache.cache):
                 if timeNow > self.cache.cache[url][1]:
                     del self.cache.cache[url]
+
+    class redditGet:
+        userAgent = "JoeBlakeB-Discord-Bot/1.0 (https://github.com/JoeBlakeB/DiscordBot)"
+        access_token = ""
+        tokenExpires = 0
+        username = ""
+        password = ""
+        client_id = ""
+        client_secret = ""
+
+        async def listing(url, anyStatus=False):
+            return await reddit.redditGet.getURL(reddit.redditGet, url, anyStatus)
+
+        async def post(submissionID):
+            url = "https://oauth.reddit.com/comments/" + submissionID + "?raw_json=1&api_type=json"
+            response = await reddit.redditGet.getURL(reddit.redditGet, url)
+            return response[0][0]["data"]["children"][0]["data"]
+
+        async def getURL(self, url, anyStatus=False):
+            headers = {"User-Agent": self.userAgent,
+                "Authorization": await self.getAuth(self)}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as resp:
+                    if resp.status != 200 and not anyStatus:
+                        raise Exception(str(resp.status))
+                    return await resp.json(), bool(resp.history)
+
+        async def postURL(self, url, data):
+            headers = {"User-Agent": self.userAgent}
+            clientAuth = aiohttp.BasicAuth(login=self.client_id, password=self.client_secret, encoding='utf-8')
+            async with aiohttp.ClientSession(auth=clientAuth) as session:
+                async with session.post(url, headers=headers, data=data) as resp:
+                    return await resp.json()
+
+        async def getAuth(self):
+            # If current token is valid, return it
+            if self.tokenExpires > time.time():
+                return self.access_token
+            # If username&password arent already read, get them from keys.txt
+            if "" in [self.username, self.password, self.client_id, self.client_secret]:
+                self.username, self.password, self.client_id, self.client_secret = keys.read("Reddit-Username", "Reddit-Password", "Reddit-Client_id", "Reddit-Client_secret")
+            # Get new token
+            response = await self.postURL(self, f"https://www.reddit.com/api/v1/access_token", data = {"grant_type": "password", "username": self.username, "password": self.password})
+            self.access_token = "bearer " + response["access_token"]
+            self.tokenExpires = time.time() + int(response["expires_in"]) - 60
+            return self.access_token
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
