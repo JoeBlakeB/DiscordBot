@@ -3,6 +3,7 @@ import asyncio
 import bz2
 import datetime
 import discord
+import io
 import json
 import re
 import os
@@ -65,33 +66,33 @@ class reddit(baseClass.baseClass):
 
             # Name
             if subreddit["title"]:
-                aboutMessage = "> **"+subreddit["title"]+"** " + badges + " ("+subreddit["display_name_prefixed"]+")"
+                aboutMessage = "\n&#42;&#42;"+subreddit["title"]+"&#42;&#42; " + badges + " ("+subreddit["display_name_prefixed"]+")"
             else:
-                aboutMessage = "> **"+subreddit["display_name_prefixed"]+"** " + badges
+                aboutMessage = "\n&#42;&#42;"+subreddit["display_name_prefixed"]+"&#42;&#42; " + badges
 
             # Info
             if isSubreddit:
-                aboutMessage += "\n> **Members:** {0:,} ({1:,} online)".format(subreddit["subscribers"], subreddit["accounts_active"])
+                aboutMessage += "\n&#42;&#42;Members:&#42;&#42; {0:,} ({1:,} online)".format(subreddit["subscribers"], subreddit["accounts_active"])
             else:
-                aboutMessage += "\n> **Karma:** {0:,} ({1} {2:,} / 🗨️ {3:,})".format(info["data"]["total_karma"], emojis["Upvote"], info["data"]["link_karma"], info["data"]["comment_karma"])
-            aboutMessage += "\n> **Cake Day:** " + datetime.datetime.fromtimestamp(info["data"]["created_utc"]).strftime("%Y-%m-%d")
+                aboutMessage += "\n&#42;&#42;Karma:&#42;&#42; {0:,} ({1} {2:,} / 🗨️ {3:,})".format(info["data"]["total_karma"], emojis["Upvote"], info["data"]["link_karma"], info["data"]["comment_karma"])
+            aboutMessage += "\n&#42;&#42;Cake Day:&#42;&#42; " + datetime.datetime.fromtimestamp(info["data"]["created_utc"]).strftime("%Y-%m-%d")
 
             # Description
             if subreddit["public_description"] != "":
-                aboutMessage += "\n> "+subreddit["public_description"].replace("\n", "\n> ")
+                aboutMessage += "\n"+subreddit["public_description"]
 
             # Images
             if isSubreddit:
-                imgNames = [["**Icon:** ", subreddit["community_icon"]], ["**Banner:** ", subreddit["banner_background_image"]]]
+                imgNames = [["&#42;&#42;Icon:&#42;&#42; ", subreddit["community_icon"]], ["&#42;&#42;Banner:&#42;&#42; ", subreddit["banner_background_image"]]]
             else:
-                imgNames = [["**Icon:** ", subreddit["icon_img"]], ["**Banner:** ", subreddit["banner_img"]]]
+                imgNames = [["&#42;&#42;Icon:&#42;&#42; ", subreddit["icon_img"]], ["&#42;&#42;Banner:&#42;&#42; ", subreddit["banner_img"]]]
                 if info["data"]["snoovatar_img"]:
-                    imgNames[0] = ["**Snoovatar:** ", info["data"]["snoovatar_img"]]
+                    imgNames[0] = ["&#42;&#42;Snoovatar:&#42;&#42; ", info["data"]["snoovatar_img"]]
             for i in imgNames:
                 if i[1]:
-                    aboutMessage += "\n> " + i[0] + i[1].split("?")[0]
+                    aboutMessage += "\n" + i[0] + i[1].split("?")[0]
 
-            await message.channel.send(aboutMessage)
+            await message.channel.send(self.reformatMessage(self, aboutMessage))
         except Exception as e:
             if str(e) in ["403", "404"]:
                 reason = await self.getSubredditUnavailableReason(self, subredditName, isSubreddit, self.isNSFW(message))
@@ -280,19 +281,19 @@ class reddit(baseClass.baseClass):
             await self.postSubmission(self, message, submissionJson)
 
     async def postSubmission(self, message, submissionJson, crosspost=False, forceSpoiler=False):
-        title = "**" + submissionJson["title"] + "**"
+        title = "&#42;&#42;" + submissionJson["title"] + "&#42;&#42;"
         author = submissionJson["subreddit_name_prefixed"] + " • u/" + submissionJson["author"]
         spoiler = forceSpoiler
         extras = []
         if submissionJson["stickied"]:
-            extras += ["**PINNED BY MODERATORS**"]
+            extras += ["&#42;&#42;PINNED BY MODERATORS&#42;&#42;"]
             title = "📌 " + title
         if submissionJson["spoiler"]:
-            extras += ["**SPOILER**"]
+            extras += ["&#42;&#42;SPOILER&#42;&#42;"]
             spoiler = True
             title = "⚠️ " + title
         if submissionJson["over_18"]:
-            extras += ["**NSFW**"]
+            extras += ["&#42;&#42;NSFW&#42;&#42;"]
             spoiler = True
             title = "🔞 " + title
         if submissionJson["locked"]:
@@ -308,7 +309,7 @@ class reddit(baseClass.baseClass):
             extras += ["({0})".format(submissionJson["link_flair_text"])]
         extras = " ".join(extras)
         if extras != "":
-            extras = "\n> " + extras
+            extras = "\n" + extras
 
         awards = ""
         awardCount = 0
@@ -320,16 +321,16 @@ class reddit(baseClass.baseClass):
             awards = "⠀" + emojis["RedditGold"] + "{0:,}".format(awardCount)
             if "--coin" in message.content.lower():
                 awards += "⠀" + emojis["Coin"] + "{0:,}".format(coinCount)
-        stats = emojis["Upvote"]+" {0:,}⠀🗨 {1:,}{2}\n> 🗓 {3}".format(submissionJson["score"], submissionJson["num_comments"], awards,
+        stats = emojis["Upvote"]+" {0:,}⠀🗨 {1:,}{2}\n🗓 {3}".format(submissionJson["score"], submissionJson["num_comments"], awards,
             datetime.datetime.fromtimestamp(submissionJson["created_utc"]).strftime("%Y-%m-%d %H:%M"))
 
-        submissionMetadata = f"> {title}\n> <https://redd.it/{submissionJson['id']}>\n> {author}{extras}\n> {stats}"
+        submissionMetadata = f"{title}\n<https://redd.it/{submissionJson['id']}>\n{author}{extras}\n{stats}"
 
         if spoiler:
-            spoilerLink = "||"
-            spoilerText = " ||"
+            spoilerLink = "&#124;&#124;"
+            spoilerText = " &#124;&#124;"
         else:
-            spoilerLink = "> "
+            spoilerLink = ""
             spoilerText = ""
 
         try:
@@ -338,12 +339,12 @@ class reddit(baseClass.baseClass):
             postHint = "None"
 
         if submissionJson["is_self"] and submissionJson["selftext"] != "": # Text post
-            submissionBody = "\n> \n> " + submissionJson["selftext"].replace("\n", "\n> ")
+            submissionBody = "\n\n" + submissionJson["selftext"]
             try:
                 pollLink = "https://www.reddit.com/poll/"+submissionJson["id"]
-                submissionBody = submissionBody.replace(f"\n> \n> [View Poll]({pollLink})", "")
-                if submissionBody == "\n> \n> ": submissionBody = ""
-                pollData = "\n> "
+                submissionBody = submissionBody.replace(f"\n\n[View Poll]({pollLink})", "")
+                if submissionBody == "\n\n": submissionBody = ""
+                pollData = "\n"
                 open = datetime.datetime.utcnow().timestamp() < submissionJson["poll_data"]["voting_end_timestamp"]/1000
                 try:
                     options = {}
@@ -355,7 +356,7 @@ class reddit(baseClass.baseClass):
                             highestCount = option["vote_count"]
                     maxVoteLine = (submissionJson["poll_data"]["total_vote_count"]*(.5-(len(options)/12))) + (highestCount*(.5+(len(options)/12)))
                     for option in options:
-                        voteCounts += f"\n> **{option}**: {options[option]}\n> "
+                        voteCounts += f"\n&#42;&#42;{option}&#42;&#42;: {options[option]}\n"
                         voteBlocks = int((options[option] / maxVoteLine) * 240)
                         if options[option] == 1: voteBlocks = 1
                         if options[option] == highestCount: voteBlocks += 2
@@ -363,22 +364,19 @@ class reddit(baseClass.baseClass):
                         optionVoteLine += "█▏▎▍▌▋▊▉"[voteBlocks%8]
                         voteCounts += optionVoteLine
                 except (AttributeError, KeyError) as e:
-                    pollData += "\n> Error getting the option vote counts" + " as the vote has not closed yet"*int(open) + "."
+                    pollData += "\nError getting the option vote counts" + " as the vote has not closed yet"*int(open) + "."
                 else:
                     pollData += voteCounts
-                pollData += f"\n> Total Votes: {submissionJson['poll_data']['total_vote_count']}"
-                pollData += "\n> " + pollLink + "\n> Voting " + ("closing" * int(open)) + ("closed" * int(not open)) + " at " + time.ctime(submissionJson["poll_data"]["voting_end_timestamp"]/1000)
+                pollData += f"\nTotal Votes: {submissionJson['poll_data']['total_vote_count']}"
+                pollData += "\n" + pollLink + "\nVoting " + ("closing" * int(open)) + ("closed" * int(not open)) + " at " + time.ctime(submissionJson["poll_data"]["voting_end_timestamp"]/1000)
             except:
                 pollData = ""
 
             if spoiler:
-                submissionData = spoilerText + submissionBody.replace("|", "¦") + spoilerText
+                submissionData = spoilerText + submissionBody + spoilerText
             else:
                 submissionData = submissionBody
-            if len(submissionMetadata) + len(submissionData) + len(pollData) > 2000:
-                submissionData = submissionData[:1956-(len(submissionMetadata)+len(pollData))] + spoilerText + "\n> (Discord max character limit reached)" + pollData
-            else:
-                submissionData += pollData
+            submissionData += pollData
         elif submissionJson["url"] == "https://www.reddit.com" + submissionJson["permalink"]: # Title only text posts
             submissionData = ""
         elif (re.match("(https:\/\/www.reddit.com|)\/r\/[^\s\/]+\/comments\/[^\s\/]+/", submissionJson["url"]) or "crosspost_parent" in submissionJson) and not crosspost: # Crossposts
@@ -392,17 +390,13 @@ class reddit(baseClass.baseClass):
                 submissionID = submissionJson["url"].split("/comments/")[1].split("/")[0]
             try:
                 submission = await self.redditGet.post(submissionID)
-                crosspostData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
-                crosspostLink = f"\n> \n> **Crosspost:** "
-                if len(submissionMetadata) + len(crosspostData) + len(crosspostLink) > 2000:
-                    submissionData = crosspostLink + crosspostData[2:1956-(len(submissionMetadata)+len(crosspostLink))] + spoilerText + "\n> (Discord max character limit reached)"
-                else:
-                    submissionData = crosspostLink + crosspostData[2:]
+                submissionData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
+                submissionData[0] = f"\n\n&#42;&#42;Crosspost:&#42;&#42; " + submissionData[0][2:]
             except Exception as e:
                 if str(e) in ["403", "404"]:
-                    submissionData = f"\n> \n> HTTP error {str(e)} while getting crosspost.\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                    submissionData = f"\n\nHTTP error {str(e)} while getting crosspost.\n{spoilerLink}{submissionJson['url']}{spoilerText}"
                 else:
-                    submissionData = "\n\n> An error has occured"
+                    submissionData = "\n\nAn error has occured"
                     print(traceback.format_exc(), flush=True)
         elif submissionJson["url"].startswith("https://www.reddit.com/gallery/"): # reddit galleries
             try:
@@ -413,7 +407,7 @@ class reddit(baseClass.baseClass):
                     imageUrl = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
                     submissionData += f"\n{spoilerLink}{imageUrl}{spoilerText}"
             except Exception:
-                submissionData = f"\n> An error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                submissionData = f"\nAn error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}"
                 print("An error has occured getting gallery data for post", submissionJson["id"], traceback.format_exc(), flush=True)
         elif postHint == "hosted:video": # Video post (not stuff like youtube)
             try:
@@ -427,15 +421,15 @@ class reddit(baseClass.baseClass):
                     submissionData = submissionData.split("?source=fallback")[0]
                 submissionData = f"\n{spoilerLink}{submissionData}{spoilerText}"
             except Exception as e:
-                e = e.replace("\n", "\n> ")
-                submissionData = f"\n> {e}\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                e = e.replace("\n", "\n")
+                submissionData = f"\n{e}\n{spoilerLink}{submissionJson['url']}{spoilerText}"
         else: # Other links
             submissionData = f"\n{spoilerLink}{submissionJson['url']}{spoilerText}"
 
         if crosspost:
-            return submissionMetadata + submissionData
+            return [submissionMetadata, submissionData]
         else:
-            await message.channel.send(submissionMetadata + submissionData)
+            await self.messageSend(self, message, submissionMetadata, submissionData, spoiler, submissionJson['id'])
 
     class recentPosts:
         recentPosts = {}
@@ -577,6 +571,63 @@ class reddit(baseClass.baseClass):
             self.access_token = "bearer " + response["access_token"]
             self.tokenExpires = time.time() + int(response["expires_in"]) - 60
             return self.access_token
+
+    async def messageSend(self, message, messageMetadata, messageData, spoiler, submissionID):
+        messageMetadata = await self.reformatMessage(self, messageMetadata, spoiler, metadata=True)
+        if type(messageData) == list:
+            messageMetadata += await self.reformatMessage(self, messageData[0], spoiler, metadata=True)
+            messageData = messageData[1]
+        messageData = await self.reformatMessage(self, messageData, spoiler)
+
+        # Only send metadata if title only text post
+        if len(messageData) <= 3:
+            await message.channel.send(messageMetadata)
+        # Send as regular message
+        elif len(messageMetadata + messageData) <= 1996:
+            if not messageData.startswith("\n> http://") and not messageData.startswith("\n> https://"):
+                messageData = "\n> " + messageData
+            await message.channel.send(messageMetadata + messageData)
+        # Send with preview and embeded text file
+        else:
+            textFile = discord.File(fp=io.BytesIO(bytes(messageData, "utf-8")), filename=submissionID+".txt", spoiler=spoiler)
+            await message.channel.send(messageMetadata, file=textFile)
+
+    linkRegex = re.compile(".*\[.*\]\(.*\).*")
+
+    async def reformatMessage(self, message, spoiler=False, metadata=False):
+        # remove formatting from post metadata
+        if metadata:
+            message = message.replace("_", "\_").replace("*", "\*")
+        # remove spoiler tags when post is already spoilered or nsfw
+        elif spoiler:
+            message = message.replace("|", "\|")
+        # add formatting
+        message = (message.replace("&#42;", "*").replace("&#124;", "|")
+            .replace("&amp;", "*").replace("&lt;", "<").replace("&gt;", ">"))
+        messageNew = ""
+        for line in message.strip().split("\n"):
+            # remove link formatting because it doesnt work in discord
+            # yes this isnt perfect and wont always work but it should
+            # most of the time so thats good enough
+            if self.linkRegex.match(line):
+                lineReformatted = ""
+                linkRemove = 0
+                for char in range(len(line)):
+                    if line[char] in "[]":
+                        linkRemove += 1
+                    elif line[char] in "()" and linkRemove != 0:
+                        if line[char-1:char+1] == "](":
+                            lineReformatted += ": "
+                        linkRemove -= 1
+                    else:
+                        lineReformatted += line[char]
+                messageNew += "\n> " + lineReformatted
+            # change preview images to real images
+            elif line.startswith("https://preview.redd.it/"):
+                messageNew += "\n> https://i.redd.it/" + line[24:].split("?")[0]
+            else:
+                messageNew += "\n> " + line
+        return messageNew
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
