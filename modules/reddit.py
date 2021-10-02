@@ -326,13 +326,6 @@ class reddit(baseClass.baseClass):
 
         submissionMetadata = f"{title}\n<https://redd.it/{submissionJson['id']}>\n{author}{extras}\n{stats}"
 
-        if spoiler:
-            spoilerLink = "&#124;&#124;"
-            spoilerText = " &#124;&#124;"
-        else:
-            spoilerLink = ""
-            spoilerText = ""
-
         try:
             postHint = submissionJson["post_hint"]
         except:
@@ -372,10 +365,7 @@ class reddit(baseClass.baseClass):
             except:
                 pollData = ""
 
-            if spoiler:
-                submissionData = spoilerText + submissionBody + spoilerText
-            else:
-                submissionData = submissionBody
+            submissionData = submissionBody
             submissionData += pollData
         elif submissionJson["url"] == "https://www.reddit.com" + submissionJson["permalink"]: # Title only text posts
             submissionData = ""
@@ -394,7 +384,7 @@ class reddit(baseClass.baseClass):
                 submissionData[0] = f"\n\n&#42;&#42;Crosspost:&#42;&#42; " + submissionData[0][2:]
             except Exception as e:
                 if str(e) in ["403", "404"]:
-                    submissionData = f"\n\nHTTP error {str(e)} while getting crosspost.\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                    submissionData = f"\n\nHTTP error {str(e)} while getting crosspost.\n{submissionJson['url']}"
                 else:
                     submissionData = "\n\nAn error has occured"
                     print(traceback.format_exc(), flush=True)
@@ -405,9 +395,9 @@ class reddit(baseClass.baseClass):
                     try: previewURL = submissionJson["media_metadata"][item["media_id"]]["s"]["u"]
                     except: previewURL = submissionJson["media_metadata"][item["media_id"]]["s"]["gif"]
                     imageUrl = previewURL.replace("preview.redd.it", "i.redd.it").split("?")[0]
-                    submissionData += f"\n{spoilerLink}{imageUrl}{spoilerText}"
+                    submissionData += "\n" + imageUrl
             except Exception:
-                submissionData = f"\nAn error has occured getting the gallery data\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                submissionData = "\nAn error has occured getting the gallery data\n" + submissionJson['url']
                 print("An error has occured getting gallery data for post", submissionJson["id"], traceback.format_exc(), flush=True)
         elif postHint == "hosted:video": # Video post (not stuff like youtube)
             try:
@@ -419,12 +409,11 @@ class reddit(baseClass.baseClass):
                 elif spoiler: submissionData += "?"
                 else:
                     submissionData = submissionData.split("?source=fallback")[0]
-                submissionData = f"\n{spoilerLink}{submissionData}{spoilerText}"
             except Exception as e:
                 e = e.replace("\n", "\n")
-                submissionData = f"\n{e}\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+                submissionData = f"\n{e}\n{submissionJson['url']}"
         else: # Other links
-            submissionData = f"\n{spoilerLink}{submissionJson['url']}{spoilerText}"
+            submissionData = submissionJson['url']
 
         if crosspost:
             return [submissionMetadata, submissionData]
@@ -573,6 +562,7 @@ class reddit(baseClass.baseClass):
             return self.access_token
 
     async def messageSend(self, message, messageMetadata, messageData, spoiler, submissionID):
+        messageDataOrig = messageData
         messageMetadata = await self.reformatMessage(self, messageMetadata, spoiler, metadata=True)
         if type(messageData) == list:
             messageMetadata += await self.reformatMessage(self, messageData[0], spoiler, metadata=True)
@@ -584,8 +574,6 @@ class reddit(baseClass.baseClass):
             await message.channel.send(messageMetadata)
         # Send as regular message
         elif len(messageMetadata + messageData) <= 1996:
-            if not messageData.startswith("\n> http://") and not messageData.startswith("\n> https://"):
-                messageData = "\n> " + messageData
             await message.channel.send(messageMetadata + messageData)
         # Send with preview and embeded text file
         else:
@@ -593,6 +581,7 @@ class reddit(baseClass.baseClass):
             await message.channel.send(messageMetadata, file=textFile)
 
     linkRegex = re.compile(".*\[.*\]\(.*\).*")
+    messageNewStartsWithLinkRegex = re.compile("(\n> |\n\|\| )http(s|)\:\/\/")
 
     async def reformatMessage(self, message, spoiler=False, metadata=False):
         # remove formatting from post metadata
@@ -621,13 +610,25 @@ class reddit(baseClass.baseClass):
                         linkRemove -= 1
                     else:
                         lineReformatted += line[char]
-                messageNew += "\n> " + lineReformatted
-            # change preview images to real images
-            elif line.startswith("https://preview.redd.it/"):
-                messageNew += "\n> https://i.redd.it/" + line[24:].split("?")[0]
-            else:
-                messageNew += "\n> " + line
-        return messageNew
+                line = lineReformatted
+            # check urls
+            if line.startswith("https://") or line.startswith("http://"):
+                # if preview replace with real link
+                if line.startswith("https://preview.redd.it/"):
+                    line = "https://i.redd.it/" + line[26:].split("?")[0]
+                # if spoilered, dont add indent line
+                if spoiler:
+                    messageNew += "\n|| " + line + " ||"
+                    continue
+            # add spoiler if not metadata and isnt just a space
+            if spoiler and not metadata and line.strip():
+                line = "|| " + line + " ||"
+            # add quote line
+            messageNew += "\n> " + line
+        if not self.messageNewStartsWithLinkRegex.match(messageNew) and not metadata:
+            return "\n> " + messageNew
+        else:
+            return messageNew
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
