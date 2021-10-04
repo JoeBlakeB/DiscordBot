@@ -81,7 +81,9 @@ class bot(baseClass.baseClass):
             elif arg == "bot":
                 kwargs[arg] = bot
             elif arg == "typing":
-                await message.channel.trigger_typing()
+                try:
+                    await message.channel.trigger_typing()
+                except: pass
 
         try:
             await commandData[0](**kwargs)

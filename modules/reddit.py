@@ -213,7 +213,9 @@ class reddit(baseClass.baseClass):
                     if (nsfwBlock[0] >= len(posts) / 3) or isNSFW:
                         if posts["after"] != None:
                             nsfwBlock[1] = False
-                            await message.channel.trigger_typing()
+                            try:
+                                await message.channel.trigger_typing()
+                            except: pass
                             await asyncio.sleep(1)
                             nextPage, redirects = await self.redditGet.listing(url.replace("limit=30", "limit=100")+"&after="+posts["after"])
                             nextPage = nextPage["data"]

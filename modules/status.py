@@ -95,7 +95,9 @@ class status(baseClass.baseClass):
 
     async def neofetch(self, message):
         if platform.system() == "Linux":
-            await message.channel.trigger_typing()
+            try:
+                await message.channel.trigger_typing()
+            except: pass
         else:
             return await message.add_reaction("❌")
 
