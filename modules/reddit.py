@@ -92,7 +92,7 @@ class reddit(baseClass.baseClass):
                 if i[1]:
                     aboutMessage += "\n" + i[0] + i[1].split("?")[0]
 
-            await message.channel.send(self.reformatMessage(self, aboutMessage))
+            await message.channel.send(await self.reformatMessage(self, aboutMessage))
         except Exception as e:
             if str(e) in ["403", "404"]:
                 reason = await self.getSubredditUnavailableReason(self, subredditName, isSubreddit, self.isNSFW(message))
