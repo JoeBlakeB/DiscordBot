@@ -447,8 +447,8 @@ class reddit(baseClass.baseClass):
 
         def clean():
             for channel in list(reddit.recentPosts.recentPosts):
-                for date in list(reddit.recentPosts.recentPosts[channel]):  # keep posts in the list for two weeks before removing them
-                    if (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days >= 14:
+                for date in list(reddit.recentPosts.recentPosts[channel]):  # keep posts in the list for three months before removing them
+                    if (datetime.date.today() - (datetime.date(int(date[0:4]), int(date[4:6]), int(date[6:8])))).days >= 90:
                         del reddit.recentPosts.recentPosts[channel][date]
                 if reddit.recentPosts.recentPosts[channel] == {}:
                     del reddit.recentPosts.recentPosts[channel]
