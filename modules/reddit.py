@@ -210,7 +210,7 @@ class reddit(baseClass.baseClass):
                 else:
                     # Try next page
                     # only if there are enough sfw posts in results if its a sfw channel
-                    if (nsfwBlock[0] >= len(posts) / 3) or isNSFW:
+                    if (nsfwBlock[0] >= len(posts["children"]) / 3) or isNSFW:
                         if posts["after"] != None:
                             nsfwBlock[1] = False
                             try:
@@ -246,17 +246,21 @@ class reddit(baseClass.baseClass):
                         return True, post["data"], nsfwBlock
                     else:
                         alreadyGotAPost = 1
-            elif not post["data"]["over_18"] and not isNSFW:
+            if (not post["data"]["over_18"]) and (not isNSFW):
                 nsfwBlock[0] += 1
         return alreadyGotAPost, None, nsfwBlock
 
     async def url(self, message, messageContentLower, exclamation):
         try:
             try:
+                await message.channel.trigger_typing()
+            except: pass
+            try:
                 await message.edit(suppress=True)
             except: pass
             # get id from url
             messageContentLower = messageContentLower[7-(6*int(exclamation)):]
+            messageContentLower = messageContentLower.replace("<", "").replace(">", "")
             messageContentLower = messageContentLower.replace("https://", "").replace("http://", "").replace("www.", "")
             if messageContentLower[:8] == "redd.it/":
                 submissionID = messageContentLower[8:].split(" ")[0]
@@ -635,11 +639,11 @@ class reddit(baseClass.baseClass):
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
 reddit.mentionedCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
-reddit.mentionedCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
+reddit.mentionedCommands["(<|)(http(s|):\/\/|)(www.|)redd(.it|it.com)\/(>|)"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":False}]
 reddit.exclamationCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.exclamationCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]
 reddit.exclamationCommands["u\/[A-Za-z0-9_-]+(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":False}]
-reddit.exclamationCommands["(http(s|):\/\/|)(www.|)redd(.it|it.com)\/"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
+reddit.exclamationCommands["(<|)(http(s|):\/\/|)(www.|)redd(.it|it.com)\/(>|)"] = [reddit.url, ["message", "messageContentLower"], {"self":reddit, "exclamation":True}]
 reddit.startTasks += [reddit.recentPosts.load()]
 reddit.closeTasks += [reddit.recentPosts.save()]
 reddit.help["reddit"] = ["embed,include", reddit.redditHelp]
