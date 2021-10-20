@@ -91,8 +91,10 @@ class reddit(baseClass.baseClass):
             for i in imgNames:
                 if i[1]:
                     aboutMessage += "\n" + i[0] + i[1].split("?")[0]
+            if nsfw:
+                aboutMessage = aboutMessage.replace(" http", "\nhttp")
 
-            await message.channel.send(await self.reformatMessage(self, aboutMessage))
+            await message.channel.send(await self.reformatMessage(self, aboutMessage, spoiler=nsfw))
         except Exception as e:
             if str(e) in ["403", "404"]:
                 reason = await self.getSubredditUnavailableReason(self, subredditName, isSubreddit, self.isNSFW(message))
@@ -387,7 +389,7 @@ class reddit(baseClass.baseClass):
             try:
                 submission = await self.redditGet.post(submissionID)
                 submissionData = await self.postSubmission(self, message, submission, crosspost=True, forceSpoiler=spoiler)
-                submissionData[0] = f"\n\n&#42;&#42;Crosspost:&#42;&#42; " + submissionData[0][2:]
+                submissionData[0] = f"\n\n&#42;&#42;Crosspost:&#42;&#42; " + submissionData[0]
             except Exception as e:
                 if str(e) in ["403", "404"]:
                     submissionData = f"\n\nHTTP error {str(e)} while getting crosspost.\n{submissionJson['url']}"
@@ -579,10 +581,13 @@ class reddit(baseClass.baseClass):
         if len(messageData) <= 3:
             await message.channel.send(messageMetadata)
         # Send as regular message
-        elif len(messageMetadata + messageData) <= 1996:
+        elif len(messageMetadata + messageData) <= 1990:
+            if not self.messageNewStartsWithLinkRegex.match(messageData):
+                messageData = "\n> " + messageData
             await message.channel.send(messageMetadata + messageData)
         # Send with preview and embeded text file
         else:
+            messageData = self.hardWrap(messageData.replace("||", "").replace("> ", "").strip())
             textFile = discord.File(fp=io.BytesIO(bytes(messageData, "utf-8")), filename=submissionID+".txt", spoiler=spoiler)
             await message.channel.send(messageMetadata, file=textFile)
 
@@ -598,7 +603,7 @@ class reddit(baseClass.baseClass):
             message = message.replace("|", "\|")
         # add formatting
         message = (message.replace("&#42;", "*").replace("&#124;", "|")
-            .replace("&amp;", "*").replace("&lt;", "<").replace("&gt;", ">"))
+            .replace("&amp;", "*").replace("&lt;", "<").replace("&gt;", ">").replace("&#x200B;", ""))
         messageNew = ""
         for line in message.strip().split("\n"):
             # remove link formatting because it doesnt work in discord
@@ -624,17 +629,30 @@ class reddit(baseClass.baseClass):
                     line = "https://i.redd.it/" + line[26:].split("?")[0]
                 # if spoilered, dont add indent line
                 if spoiler:
-                    messageNew += "\n|| " + line + " ||"
+                    messageNew += "\n||" + line + " ||"
                     continue
             # add spoiler if not metadata and isnt just a space
             if spoiler and not metadata and line.strip():
-                line = "|| " + line + " ||"
+                line = "||" + line + " ||"
             # add quote line
             messageNew += "\n> " + line
-        if not self.messageNewStartsWithLinkRegex.match(messageNew) and not metadata:
-            return "\n> " + messageNew
-        else:
-            return messageNew
+        return messageNew
+
+    def hardWrap(text, lineMaxLength=79):
+        newText = ""
+        for line in text.split("\n"):
+            if len(line) < 79:
+                newText += line + "\n"
+            else:
+                nextLine = ""
+                for word in line.split():
+                    if len(nextLine + word) < lineMaxLength:
+                        nextLine += " " + word
+                    else:
+                        newText += nextLine[1:] + "\n"
+                        nextLine = " " + word
+                newText += nextLine[1:] + "\n"
+        return newText[:-1]
 
 reddit.mentionedCommands["reddit(?!\S)"] = [reddit.reddit, ["message"], {"self":reddit}]
 reddit.mentionedCommands["r\/([^\s\/]+)(?!\S)"] = [reddit.subreddit, ["message", "commandContent"], {"self":reddit, "isSubreddit":True}]

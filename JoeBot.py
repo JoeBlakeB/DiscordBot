@@ -121,7 +121,7 @@ async def on_message(message):
                     messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
             else:
                 if messageContentLower[0] != "!" and messageContentLower[:6] != "joebot":
-                    messageContentLower = "joebot" + messageContentLower
+                    messageContentLower = "joebot " + messageContentLower
         else:
             if messageContentLower.startswith("joebottest") or messageContentLower.startswith("joebotbeta"):
                 messageContentLower = "joebot" + messageContentLower[10:]
