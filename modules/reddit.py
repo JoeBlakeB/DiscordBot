@@ -183,7 +183,6 @@ class reddit(baseClass.baseClass):
                     await message.channel.send("Error: Currently blocked from reddit.")
                 else:
                     await message.channel.send("Error: " + str(e))
-                    print(traceback.format_exc(), flush=True)
                 return
 
             # If the subreddit does not exist
@@ -574,7 +573,10 @@ class reddit(baseClass.baseClass):
                 self.username, self.password, self.client_id, self.client_secret = keys.read("Reddit-Username", "Reddit-Password", "Reddit-Client_id", "Reddit-Client_secret")
             # Get new token
             response = await self.postURL(self, f"https://www.reddit.com/api/v1/access_token", data = {"grant_type": "password", "username": self.username, "password": self.password})
-            self.access_token = "bearer " + response["access_token"]
+            try:
+                self.access_token = "bearer " + response["access_token"]
+            except:
+                raise Exception("Blocked")
             self.tokenExpires = time.time() + int(response["expires_in"]) - 60
             return self.access_token
 
