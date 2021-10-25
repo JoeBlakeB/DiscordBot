@@ -179,8 +179,11 @@ class reddit(baseClass.baseClass):
                     await message.channel.send(f"Could not get a post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)} {reason}")
                 elif str(e) == "503":
                     await message.channel.send("HTTP Error 503, Reddit is unavailable.")
+                elif str(e) == "Blocked":
+                    await message.channel.send("Error: Currently blocked from reddit.")
                 else:
                     await message.channel.send("Error: " + str(e))
+                    print(traceback.format_exc(), flush=True)
                 return
 
             # If the subreddit does not exist
@@ -554,7 +557,13 @@ class reddit(baseClass.baseClass):
             clientAuth = aiohttp.BasicAuth(login=self.client_id, password=self.client_secret, encoding='utf-8')
             async with aiohttp.ClientSession(auth=clientAuth) as session:
                 async with session.post(url, headers=headers, data=data) as resp:
-                    return await resp.json()
+                    try:
+                        return await resp.json()
+                    except aiohttp.client_exceptions.ContentTypeError as e:
+                        if await resp.text() == "Blocked":
+                            raise Exception("Blocked")
+                        else:
+                            raise e
 
         async def getAuth(self):
             # If current token is valid, return it
