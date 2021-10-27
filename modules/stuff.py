@@ -15,6 +15,7 @@ emojis = {
     "Shotgun4":     "<a:shotgun4:803767807170576384>",
     "RedditGold":   "<:RedditGold:829118524969975809>",
     "Upvote":       "<:upvote:829141166430748724>",
+    "Downvote":     "<:downvote:902827492962877480>",
     "Coin":         "<:Coin:829274378881073174>",
     "Four":         "<:four:829673449110765598>",
     "TeaTime":      "<a:teatime:834903558599213057>",
@@ -105,9 +106,21 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             except Exception:
                 await message.add_reaction("⚠️")
 
+    async def upvote(message):
+        try:
+            referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+            await referenceMessage.add_reaction(emojis["Upvote"])
+            await referenceMessage.add_reaction(emojis["Downvote"])
+            await asyncio.sleep(1)
+            await message.delete()
+        except:
+            await message.add_reaction("⚠️")
+
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
 stuff.exclamationCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
+stuff.mentionedCommands["(|up)vote(?!\S)"] = [stuff.upvote, ["message"], {}]
+stuff.exclamationCommands["(|up)vote(?!\S)"] = [stuff.upvote, ["message"], {}]
 stuff.mentionedCommands["(good|bad)( |)(bot|boy)$"] = [stuff.goodBot, ["message"], {}]
 stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower", "bot"], {}]
 stuff.mentionedCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower", "bot"], {"mentioned": 6}]
