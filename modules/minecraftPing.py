@@ -15,8 +15,8 @@ class minecraftPing(baseClass.baseClass):
     async def ping(message, messageContentLower):
 
         messageContentLower = messageContentLower[14-(bool(messageContentLower[0] == "!")*6):]
-        if messageContentLower.startswith("ftping "):
-            messageContentLower = messageContentLower[7:]
+        if messageContentLower.startswith("ftping"):
+            messageContentLower = messageContentLower[6:]
         messageContentLower = messageContentLower.strip().replace(":", " ").split(" ")
         ip = "localhost"
         port = 25565
