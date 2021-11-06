@@ -419,8 +419,13 @@ class reddit(baseClass.baseClass):
                 elif spoiler: submissionData += "?"
                 else:
                     submissionData = submissionData.split("?source=fallback")[0]
+                # Discord embeds vreddit videos with full reddit post link
+                if submissionData.startswith("https://v.redd.it/") and "DASH" in submissionData:
+                    submissionData = f"https://reddit.com/r/{submissionJson['subreddit']}/comments/{submissionJson['id']}"
+                    if not spoiler:
+                        submissionMetadata = submissionMetadata.replace(f"<https://redd.it/{submissionJson['id']}>", submissionData)
+                        submissionData = ""
             except Exception as e:
-                e = e.replace("\n", "\n")
                 submissionData = f"\n{e}\n{submissionJson['url']}"
         else: # Other links
             submissionData = submissionJson['url']
@@ -603,7 +608,7 @@ class reddit(baseClass.baseClass):
             await message.channel.send(messageMetadata, file=textFile)
 
     linkRegex = re.compile(".*\[.*\]\(.*\).*")
-    messageNewStartsWithLinkRegex = re.compile("(\n> |\n\|\| )http(s|)\:\/\/")
+    messageNewStartsWithLinkRegex = re.compile("(\n> |\n\|\|)http(s|)\:\/\/")
 
     async def reformatMessage(self, message, spoiler=False, metadata=False):
         # remove formatting from post metadata
