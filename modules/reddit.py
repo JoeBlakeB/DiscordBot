@@ -27,6 +27,7 @@ class reddit(baseClass.baseClass):
         "\n\nYou can sort by different methods like top/new:\n<@!796433833296658442> r/<SUBREDDIT> top"+
         "\n\nYou can also define the time range for those searches:\n<@!796433833296658442> r/<SUBREDDIT> top month"+
         "\n\nIf you want to search for a post, say search then say the search terms:\n<@!796433833296658442> r/<SUBREDDIT> search <SEARCH TERMS>"+
+        "\n\nIf you want to search for a specific flair, say search then say the name of the flair:\n<@!796433833296658442> r/<SUBREDDIT> flair <FLAIR>"+
         "\n\nTo get posts from users instead of subreddits just say u/ instead of r/"+
         "\n\nTo get information about a subreddit, say its name then about. For example: <@!796433833296658442> r/196 about"+
         "\n\nTo use JoeBot in DMs, remove the prefix, for example r/<SUBREDDIT> instead of !r/<SUBREDDIT>"),
@@ -132,15 +133,22 @@ class reddit(baseClass.baseClass):
         restOfMessage = commandContent.split()[1:]
         if restOfMessage == ["info"] or restOfMessage == ["about"]:
             return await self.about(self, message, subredditName, isSubreddit)
+        search = False
+        searchTerm = ""
+        if "flair" in restOfMessage[:-1]:
+            search = True
+            flair = 0
+            for word in restOfMessage:
+                if word == "search": flair = 2
+                elif flair == 1: searchTerm += " " + word
+                elif word == "flair" and flair == 0: flair = 1
+            searchTerm = "flair:\"" + searchTerm.replace("\"", "'") + "\""
         if "search" in restOfMessage[:-1]:
             search = True
-            searchTerm = 0
+            getSearchTerm = 0
             for word in restOfMessage:
-                if searchTerm != 0 and searchTerm != 1: searchTerm += " " + word
-                elif searchTerm == 1: searchTerm = word
-                elif word == "search": searchTerm = 1
-        else:
-            search = False
+                if getSearchTerm == 1: searchTerm += " " + word
+                elif word == "search": getSearchTerm = 1
 
         sortMethod = list(self.sortMethods[int(search)])[0]
         for word in restOfMessage:
