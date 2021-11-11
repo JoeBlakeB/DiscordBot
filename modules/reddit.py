@@ -103,6 +103,59 @@ class reddit(baseClass.baseClass):
             else:
                 print(traceback.format_exc(), flush=True)
 
+    async def flairList(self, message, subredditName, text=None): # https://www.reddit.com/r/196/api/link_flair.json
+        try:
+            flairs, doesntExist = await self.redditGet.listing(f"https://oauth.reddit.com/r/{subredditName}/api/link_flair?raw_json=1&api_type=json")
+        except:
+            flairs, doesntExist = [], True
+        if len(flairs) == 0 or doesntExist:
+            return await message.channel.send("That subreddit doens't have any flairs.")
+        if text == None:
+            text = f"r/{subredditName} has {len(flairs)} flairs:"
+        flairList = []
+        charsInCollumn = 23
+        flairsLessThanCollumn = 0
+        for flair in flairs:
+            if "http" in flair["text"]: # make links in flairs not embed
+                tmp = flair["text"].split(" ")
+                tmp2 = []
+                for word in tmp:
+                    if word.startswith("http"):
+                        word = "<" + word + ">"
+                    tmp2.append(word)
+                flair["text"] = " ".join(tmp2)
+            flairList.append(flair["text"])
+            if len(flair["text"]) <= charsInCollumn:
+                flairsLessThanCollumn += 1
+        if len(flairList) > 16 and (flairsLessThanCollumn/len(flairList)) > .7: # make table
+            isTable = "```"
+            send = text + "\n"
+            currentCollumn = 0
+            for flair in flairList:
+                send += flair + " "*(charsInCollumn - (len(flair)%charsInCollumn))
+                currentCollumn += 1 + (len(flair)//charsInCollumn)
+                if currentCollumn >= 6:
+                    send += "\n"
+                    currentCollumn = 0
+        else:
+            isTable = ""
+            send = "\n - ".join([text] + flairList)
+        if len(send) >= 1900: # split message if longer than 2000
+            sendList = []
+            current = ""
+            for line in send.split("\n"):
+                if len(current) + len(line) > 1950:
+                    sendList.append(current[1:])
+                    current = "\n" + line
+                else:
+                    current += "\n" + line
+            if current != "":
+                sendList.append(current[1:])
+        else:
+            sendList = [send]
+        for chunk in sendList:
+            await message.channel.send(isTable + "\n" + chunk + "\n" + isTable)
+
     def isNSFW(message):
         try:
             return message.channel.is_nsfw()
@@ -133,10 +186,12 @@ class reddit(baseClass.baseClass):
         restOfMessage = commandContent.split()[1:]
         if restOfMessage == ["info"] or restOfMessage == ["about"]:
             return await self.about(self, message, subredditName, isSubreddit)
-        search = False
+        if (restOfMessage == ["flair"] or restOfMessage == ["flairs"]) and isSubreddit:
+            return await self.flairList(self, message, subredditName)
+        search = ""
         searchTerm = ""
         if "flair" in restOfMessage[:-1]:
-            search = True
+            search = "flair"
             flair = 0
             for word in restOfMessage:
                 if word == "search": flair = 2
@@ -144,16 +199,16 @@ class reddit(baseClass.baseClass):
                 elif word == "flair" and flair == 0: flair = 1
             searchTerm = "flair:\"" + searchTerm.replace("\"", "'") + "\""
         if "search" in restOfMessage[:-1]:
-            search = True
+            search = "search"
             getSearchTerm = 0
             for word in restOfMessage:
                 if getSearchTerm == 1: searchTerm += " " + word
                 elif word == "search": getSearchTerm = 1
 
-        sortMethod = list(self.sortMethods[int(search)])[0]
+        sortMethod = list(self.sortMethods[int(bool(search))])[0]
         for word in restOfMessage:
             if word == "search": break
-            if word in list(self.sortMethods[int(search)]):
+            if word in list(self.sortMethods[int(bool(search))]):
                 sortMethod = word
         sortTime = "all"
         for word in restOfMessage:
@@ -238,7 +293,11 @@ class reddit(baseClass.baseClass):
                     if not forceAllowPinned:
                         forceAllowPinned = True
                         continue
-                    await message.channel.send(f"Could not get a{'nother'*postFound}{' SFW'*int(nsfwBlock[1])} post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{' with that search'*int(search)}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
+                    #
+                    if not postFound and search == "flair" and isSubreddit:
+                        await self.flairList(self, message, subredditName, text = "Could not find a post with that flair from that subreddit, here is a list of available flairs:")
+                    else:
+                        await message.channel.send(f"Could not get a{'nother'*postFound}{' SFW'*int(nsfwBlock[1])} post from that {'user'*int(not isSubreddit)}{'subreddit'*int(isSubreddit)}{' with that '*int(bool(search))}{search}.{' Try using JoeBot in a NSFW channel or in your DMs to view these posts.'*int(nsfwBlock[1])}")
                 break
             except:
                 await message.channel.send("An error has occured while trying to get a post from that sub.")
