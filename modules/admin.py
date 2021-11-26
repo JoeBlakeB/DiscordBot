@@ -112,10 +112,19 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
         except:
             await message.add_reaction("⚠️")
 
+    async def nick(message):
+        if message.author.id != admin.adminID:
+            return await admin.common(message)
+        try:
+            await message.guild.me.edit(nick=message.content[21:])
+        except:
+            await message.add_reaction("⚠️")
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
 admin.mentionedCommands["sudo edit(?!\S)"] = [admin.edit, ["message"], {}]
 admin.mentionedCommands["sudo dm send(?!\S)"] = [admin.dmSend, ["message", "bot"], {}]
 admin.mentionedCommands["sudo dm history(?!\S)"] = [admin.dmHistory, ["message", "bot"], {}]
-admin.mentionedCommands["sudo sup(|p)ress(?!\S)"] = [admin.supress, ["message"], {}]
+admin.mentionedCommands["sudo sup(|p)res(|s)(?!\S)"] = [admin.supress, ["message"], {}]
+admin.mentionedCommands["sudo nick(?!\S)"] = [admin.nick, ["message"], {}]

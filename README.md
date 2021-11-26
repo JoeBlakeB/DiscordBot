@@ -19,3 +19,10 @@ JoeBot is a DiscordBot which uses [PyCord](https://github.com/Pycord-Development
 ### Minecraft Server Ping
 
 ![](https://cdn.discordapp.com/attachments/796434329831604288/883344232994185256/Screenshot_2021-09-03_143402.png)
+
+## Requirements
+
+- py-cord
+- requests
+- pillow
+- mcstatus
