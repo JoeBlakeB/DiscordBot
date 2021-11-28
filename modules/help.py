@@ -58,7 +58,6 @@ class help(baseClass.baseClass):
         if psutil:
             for proc in psutil.process_iter():
                 if len(proc.cmdline()) == 4:
-                    print(proc.cmdline(), flush=True)
                     if proc.cmdline()[:-1] == ["/usr/bin/java", "-Dnogui=true", "-jar"] and "JMusicBot" in proc.cmdline()[-1]:
                         return "\n\n[JMusicBot](https://github.com/jagrosh/MusicBot) is currently running on JoeBot, use **!MusicHelp** for help music commands."
         return ""

@@ -116,7 +116,7 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
         if message.author.id != admin.adminID:
             return await admin.common(message)
         try:
-            await message.guild.me.edit(nick=message.content[21:])
+            await message.guild.me.edit(nick=message.content[17:])
         except:
             await message.add_reaction("⚠️")
 

@@ -1,3 +1,4 @@
+import aiohttp
 import asyncio
 
 class baseClass:
@@ -16,6 +17,19 @@ class baseUtils:
             await message.delete()
         except Exception:
             pass
+
+    async def aiohttpGet(url, headers={"User-Agent": "JoeBlakeB-Discord-Bot/1.0 (https://github.com/JoeBlakeB/DiscordBot)"}, json=False, bytes=False):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as resp:
+                if json:
+                    try:
+                        return await resp.json(), resp.status
+                    except aiohttp.client_exceptions.ContentTypeError:
+                        raise ValueError
+                elif bytes:
+                    return await resp.read(), resp.status
+                else:
+                    return await resp.text(), resp.status
 
 # mentionedCommands & exclamationCommands
 # exampleClass.mentionedCommands[regex] = [asyncFunctionToRun, argList, staticArgsDict]
