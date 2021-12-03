@@ -27,11 +27,16 @@ class minecraftPing(baseClass.baseClass):
             except: pass
 
         server = mcstatus.MinecraftServer(ip, port)
+        ping = False
         try:
+            ping = await server.async_ping()
             status = await server.async_status()
             raw = status.raw
         except Exception:
-            raw = {"description":"Can't connect to server"}
+            if ping:
+                raw = {"description": f"Could not query the server but could ping it, the server may have disabled queries."}
+            else:
+                raw = {"description": "Can't connect to server"}
         embed = discord.Embed()
         if isinstance(raw["description"], dict):
             if raw["description"]["text"] == "":
@@ -66,6 +71,8 @@ class minecraftPing(baseClass.baseClass):
                 embed.description += "\nVersion: " + str(raw["version"]["name"])
                 # if "protocol" in raw["version"]:
                 #     embed.description += "\nServer Protocol: " + str(raw["version"]["protocol"])
+        if ping:
+            embed.description += "\nPing: " + str(int(ping)) + "ms"
 
         if "favicon" in raw: # This seems like some of it is pointless but I cant get it to work any other way
             image = base64.b64decode(raw["favicon"].split("data:image/png;base64,")[1])
