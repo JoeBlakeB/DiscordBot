@@ -55,7 +55,7 @@ class minecraftPing(baseClass.baseClass):
 
         embed.description = "Server Address: " + ip
         if port != 25565:
-            embed.description += str(port)
+            embed.description += ":" + str(port)
         if "players" in raw:
             if "online" in raw["players"]:
                 embed.description += "\nPlayers: " + str(raw["players"]["online"])
