@@ -111,8 +111,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             referenceMessage = await message.channel.fetch_message(message.reference.message_id)
             await referenceMessage.add_reaction(emojis["Upvote"])
             await referenceMessage.add_reaction(emojis["Downvote"])
-            await asyncio.sleep(1)
-            await message.delete()
         except:
             await message.add_reaction("⚠️")
 
