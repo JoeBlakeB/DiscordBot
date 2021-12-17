@@ -120,6 +120,18 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
         except:
             await message.add_reaction("⚠️")
 
+    async def emoji(message):
+        if message.author.id != admin.adminID:
+            return await admin.common(message)
+        try:
+            with open(message.content[18:], "rb") as img:
+                img_byte = img.read()
+                await message.guild.create_custom_emoji(name = (message.content.split("/")[-1].split(".")[0]), image = img_byte)
+            await message.add_reaction("✅")
+        except:
+            await message.add_reaction("⚠️")
+            print(traceback.format_exc(), flush=True)
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
@@ -128,3 +140,4 @@ admin.mentionedCommands["sudo dm send(?!\S)"] = [admin.dmSend, ["message", "bot"
 admin.mentionedCommands["sudo dm history(?!\S)"] = [admin.dmHistory, ["message", "bot"], {}]
 admin.mentionedCommands["sudo sup(|p)res(|s)(?!\S)"] = [admin.supress, ["message"], {}]
 admin.mentionedCommands["sudo nick(?!\S)"] = [admin.nick, ["message"], {}]
+admin.mentionedCommands["sudo emoji(?!\S)"] = [admin.emoji, ["message"], {}]
