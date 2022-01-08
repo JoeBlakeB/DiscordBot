@@ -107,7 +107,7 @@ class crypto(baseClass.baseClass):
 crypto.mentionedCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]
 crypto.exclamationCommands["crypto(?!\S)"] = [crypto.crypto, ["message", "commandContent", "typing"], {"self":crypto}]
 
-crypto.exclamationCommands["doge(coin|)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto doge"}]
+crypto.exclamationCommands["doge(coin|)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto dogecoin"}]
 crypto.exclamationCommands["(btc|bitcoin)\Z"] = [crypto.crypto, ["message", "typing"], {"self":crypto, "commandContent":"crypto btc"}]
 
 crypto.help["crypto"] = ["embed,include", {"title":"Crypto",

@@ -117,7 +117,7 @@ class minecraftUser(baseClass.baseClass, baseClass.baseUtils):
                 b += pixel[2]
         return discord.Color.from_rgb(int(r/count), int(g/count), int(b/count))
 
-minecraftUser.mentionedCommands["minecraft(user|profile|skin)(?!\S)"] = [minecraftUser.getUsername, ["message"], {"self":minecraftUser}]
-minecraftUser.exclamationCommands["minecraft(user|profile|skin)(?!\S)"] = [minecraftUser.getUsername, ["message"], {"self":minecraftUser}]
+minecraftUser.mentionedCommands["(minecraft|mc)(user|profile|skin)(?!\S)"] = [minecraftUser.getUsername, ["message"], {"self":minecraftUser}]
+minecraftUser.exclamationCommands["(minecraft|mc)(user|profile|skin)(?!\S)"] = [minecraftUser.getUsername, ["message"], {"self":minecraftUser}]
 minecraftUser.help["MinecraftProfile"] = ["include", None]
 minecraftUser.help["minecraft(user|profile|skin)"] = ["embed", {"title":"Minecraft User Profile", "description":"Get a Minecraft (java) players profile\n\nUse **MinecraftProfile** and say the username or UUID after.\n\nSyntax:\n<@796433833296658442> minecraftprofile <username/UUID>", "thumbnail":"https://cdn.discordapp.com/emojis/613523198377590935.gif"}]
