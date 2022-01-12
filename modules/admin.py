@@ -132,6 +132,37 @@ class admin(baseClass.baseClass, baseClass.baseUtils):
             await message.add_reaction("⚠️")
             print(traceback.format_exc(), flush=True)
 
+    async def addRoleToEveryone(message, bot):
+        if message.author.id != admin.adminID:
+            return await admin.common(message)
+        try:
+            reacted = 1
+            emoji1 = "<a:CatGif:797138290528354336>"
+            emoji2 = "<a:clubAmogus:921166149754949672>"
+            roleID = message.content.split(" ")[-1]
+            try:
+                roleID = int(roleID)
+            except:
+                roleID = int(roleID[3:-1])
+            role = message.guild.get_role(roleID)
+            for member in message.guild.members:
+                await member.add_roles(role)
+                if reacted == 1:
+                    await message.add_reaction(emoji1)
+                    await message.remove_reaction(emoji2, bot.client.user)
+                    reacted = 2
+                else:
+                    await message.add_reaction(emoji2)
+                    await message.remove_reaction(emoji1, bot.client.user)
+                    reacted = 1
+                await asyncio.sleep(4)
+            await message.add_reaction("✅")
+            await message.remove_reaction(emoji1, bot.client.user)
+            await message.remove_reaction(emoji2, bot.client.user)
+        except:
+            await message.add_reaction("⚠️")
+            print(traceback.format_exc(), flush=True)
+
 admin.mentionedCommands["sudo react(?!\S)"] = [admin.react, ["message"], {}]
 admin.mentionedCommands["sudo say(?!\S)"] = [admin.say, ["message"], {}]
 admin.mentionedCommands["sudo server list(| verbose)"] = [admin.servers, ["message", "bot"], {}]
@@ -141,3 +172,4 @@ admin.mentionedCommands["sudo dm history(?!\S)"] = [admin.dmHistory, ["message",
 admin.mentionedCommands["sudo sup(|p)res(|s)(?!\S)"] = [admin.supress, ["message"], {}]
 admin.mentionedCommands["sudo nick(?!\S)"] = [admin.nick, ["message"], {}]
 admin.mentionedCommands["sudo emoji(?!\S)"] = [admin.emoji, ["message"], {}]
+admin.mentionedCommands["sudo addroletoeveryone(?!\S)"] = [admin.addRoleToEveryone, ["message", "bot"], {}]

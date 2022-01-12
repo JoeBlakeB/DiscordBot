@@ -42,6 +42,11 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
         if len(whoToKill) > 256:
             return await message.add_reaction("❌")
 
+        try:
+            referenceMessage = await message.channel.fetch_message(message.reference.message_id)
+            whoToKill = "<@"+str(referenceMessage.author.id)+"> " + whoToKill
+        except AttributeError: pass
+
         if " as " in message.content:
             murderer = message.content.split(" as ")[-1]
         else:
@@ -55,9 +60,9 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
 
     async def goodBot(message):
         if "good" in message.content:
-            await message.channel.send(random.choice([":3", "uwu", "UωU"]))
+            await message.channel.send(random.choice([":3", "uwu", "UωU", emojis["TigerBoop"]]))
         else:
-            await message.channel.send(random.choice(["ÓnÒ why am I a bad bot?", "ÒwÓ no you", "thats mean"]))
+            await message.channel.send(random.choice(["ÓnÒ why am I a bad bot?", "ÒwÓ no you", "thats mean", emojis["SidStare"], emojis["CatStand"]]))
 
     youKnowIHadToDoItToEmBody = "\n<:YouKnowIHadToL2:832746970283245588><:YouKnowIHadToC2:832746970103283762><:YouKnowIHadToR2:832746969906675753>\n<:YouKnowIHadToL3:832746969679134731><:YouKnowIHadToC3:832746969964609546><:YouKnowIHadToR3:832746970103676938>\n<:YouKnowIHadToL4:832746969986236457><:YouKnowIHadToC4:832746969566937140><:YouKnowIHadToR4:832746970254671902>"
     youKnowLeft = "<:YouKnowIHadToL1:832746970544078889>"
@@ -83,16 +88,6 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             if len(text) != 0:
                 await message.add_reaction("❌")
         await message.channel.send(stuff.youKnowLeft + str(head) + stuff.youKnowRight + stuff.youKnowIHadToDoItToEmBody)
-
-    async def tomato(message):
-        if isinstance(message.channel, discord.channel.DMChannel):
-            await asyncio.sleep(random.randint(10,40))
-            await message.channel.send(message.author.display_name + " has been infected with a tomato")
-            await asyncio.sleep(random.randint(5,20))
-            await message.channel.send("Now change your status to \"DM me the word tomato\" to infect others")
-
-        else:
-            await message.add_reaction("🍅")
 
     async def pfp(message, bot):
         try:
@@ -124,7 +119,5 @@ stuff.exclamationCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIH
 stuff.mentionedCommands["youknowihadtodoitto(th|)em(?!\S)"] = [stuff.youKnowIHadToDoItToEm, ["message", "messageContentLower", "bot"], {"mentioned": 6}]
 stuff.mentionedCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
 stuff.exclamationCommands["pfp(?!\S)"] = [stuff.pfp, ["message", "bot"], {}]
-
-stuff.mentionedCommands["tomato"] = [stuff.tomato, ["message"], {}]
 
 stuff.help["kill"] = ["include"]
