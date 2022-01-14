@@ -26,10 +26,17 @@ emojis = {
     "TigerBoop":    "<a:tigerboop:808399700549697596>"
 }
 
+# role
+# joebotbeta say <@&931531177997774918>
+# user
+# joebot say <@!365154655313068032>
 class stuff(baseClass.baseClass, baseClass.baseUtils):
     emojiRegex = re.compile("<(a|)(:|;)(.*)(:|;)(\d*)>")
+    def cleanMessageContent(message):
+        return message.content.replace("@&", "​@​").replace("@everyone", "​@​everyone")
+
     async def say(message):
-        messageContent = "say ".join(message.content.split("say ")[1:])
+        messageContent = "say ".join(stuff.cleanMessageContent(message).split("say ")[1:])
         if (len(messageContent) >= 128 and ("\n>" in messageContent)) or len(messageContent) >= 1024:
             return await message.add_reaction("❌")
         if stuff.emojiRegex.search(messageContent):
@@ -38,7 +45,7 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await message.channel.send(messageContent)
 
     async def kill(message):
-        whoToKill = "kill ".join(message.content.split("kill ")[1:]).split(" as ")[0]
+        whoToKill = "kill ".join(stuff.cleanMessageContent(message).split("kill ")[1:]).split(" as ")[0]
         if len(whoToKill) > 256:
             return await message.add_reaction("❌")
 
@@ -47,8 +54,8 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             whoToKill = "<@"+str(referenceMessage.author.id)+"> " + whoToKill
         except AttributeError: pass
 
-        if " as " in message.content:
-            murderer = message.content.split(" as ")[-1]
+        if " as " in stuff.cleanMessageContent(message):
+            murderer = stuff.cleanMessageContent(message).split(" as ")[-1]
         else:
             murderer = "<@"+str(message.author.id)+">"
         gun = " " + emojis["Shotgun1"] + emojis["Shotgun2"] + emojis["Shotgun3"] + emojis["Shotgun4"] + " "
