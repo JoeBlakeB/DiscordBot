@@ -101,10 +101,10 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             userID = message.content.split(" ")[-1]
             userID = re.findall(r"\d+", userID)[0]
             user = bot.client.get_user(int(userID))
-            await message.channel.send(user.avatar_url)
+            await message.channel.send(user.avatar)
         except Exception:
             try:
-                await message.channel.send(message.author.avatar_url)
+                await message.channel.send(message.author.avatar)
             except Exception:
                 await message.add_reaction("⚠️")
 
