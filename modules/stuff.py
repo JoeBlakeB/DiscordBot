@@ -7,7 +7,7 @@ import time
 import baseClass
 
 emojis = {
-    "HoodCate":     "<:hoodcate:822937989667749918>",
+    "HoodCate":     "<:hoodcate:937140651718500444>",
     "HoodCateHD":   "<:hoodcateHD:822937932464914494>",
     "Shotgun1":     "<:shotgun1:803767806956929055>",
     "Shotgun2":     "<:shotgun2:803767806914068493>",
