@@ -114,7 +114,8 @@ class stuff(baseClass.baseClass, baseClass.baseUtils):
             await referenceMessage.add_reaction(emojis["Upvote"])
             await referenceMessage.add_reaction(emojis["Downvote"])
         except:
-            await message.add_reaction("⚠️")
+            if message.content.split("vote")[1] == "":
+                await message.add_reaction("⚠️")
 
 stuff.mentionedCommands["say(?!\S)"] = [stuff.say, ["message"], {}]
 stuff.mentionedCommands["kill(?!\S)"] = [stuff.kill, ["message"], {}]
