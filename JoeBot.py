@@ -1,182 +1,64 @@
 #!/usr/bin/env python3
-# JoeBot Copyright (C) 2021 JoeBlakeB
-__author__ = "JoeBlakeB"
-__copyright__ = "Copyright 2021, JoeBlakeB (joeblakeb.github.io)"
+__author__ = "Joe Baker (JoeBlakeB)"
+__copyright__ = "Copyright 2023, Joe Baker (JoeBlakeB)"
 __credits__ = ["JoeBlakeB"]
 __license__ = "GPL"
 
-import asyncio
 import discord
-import random
-import re
-import sys
-import traceback
+import warnings
 
-from userJoinLeave import userJoinLeave
-import keys
+from scripts.config import Config
+from scripts.secrets import Secrets
 
-# Get Discord token
+class Bot(discord.Bot):
+    botName = "JoeBot"
+    prefixCommands = {}
 
-try:
-    token = keys.read("Discord")
-except:
-    token = None
-    import sys
-    if len(sys.argv) > 1:
-        token = sys.argv[1]
-    if token == None:
-        print("Token not found in keys.txt (Discord: <token>) and not in args")
-        exit(1)
+    def __init__(self):
+        self.config = Config()
+        self.secrets = Secrets(self.config)
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
+        extensions = self.load_extensions("cogs")
+        for extension in extensions:
+            if discord.errors.ExtensionFailed == type(extensions[extension]):
+                warnings.warn(f"Extension {extension} failed to load:\n {extensions[extension]}")
+        for cog in self.cogs:
+            if hasattr(self.cogs[cog], "prefixCommands"):
+                self.prefixCommands.update(self.cogs[cog].prefixCommands)
+    
+    def run(self):
+        token = self.secrets.get("discord")
+        if not token:
+            raise ValueError("Please add your discord token to secrets.json")
+        super().run(token)
 
-# Change commands prefix for testing
-try:
-    testingMode = keys.read("Testing", file="config.txt")
-except:
-    testingMode = False
-
-# Create bot
-
-from modules import baseClass
-class bot(baseClass.baseClass):
-    intents = discord.Intents.default()
-    intents.members = True
-    client = discord.Client(intents=intents)
-
-    mentionedCommandsList = []
-    for command in list(baseClass.baseClass.mentionedCommands):
-        mentionedCommandsList += [re.compile(command)]
-    exclamationCommandsList = []
-    for command in list(baseClass.baseClass.exclamationCommands):
-        exclamationCommandsList += [re.compile(command)]
-
-    noCommandSpecified = ["wat?", "wat", "?", "the fuck you want?", "<:hoodcate:822937989667749918>", "<:hoodcateHD:822937932464914494>", "<:hoodcate2:803666598526320690><a:teatime:852882675680149524>"]
-    commandNotFoundList = ["what do you mean {0}", "I don't know what you mean by \"{0}\""]
-
-    async def commandNotFound(self, message):
-        if len(message.content.split(" ")) <= 2:
-            await message.channel.send(random.choice(self.noCommandSpecified))
+    async def on_ready(self):
+        print(f"Logged in as {self.user}", flush=True)
+    
+    async def on_message(self, message):
+        if message.author == self.user:
+            return
+        msg = message.content.lower().strip()
+        if msg.startswith("!"):
+            return await self.runPrefixCommand(msg[1:].strip(), message)
+        elif hasattr(message.guild, "me"):
+            for prefix in (
+                message.guild.me.display_name.lower(),
+                self.user.display_name.lower(),
+                "<@!" + str(self.user.id) + ">",
+                "<@" + str(self.user.id) + ">",
+            ):
+                if msg.startswith(prefix):
+                    return await self.runPrefixCommand(msg[len(prefix):].strip(), message)
         else:
-            await message.channel.send(random.choice(self.commandNotFoundList + self.noCommandSpecified).format(message.content))
+            return await self.runPrefixCommand(msg, message)
+    
+    async def runPrefixCommand(self, msg, message):
+        for command in self.prefixCommands:
+            if msg.startswith(command):
+                return await self.prefixCommands[command](message)
 
-    async def runCommand(message, command=None, messageContentLower="", generalCommands=False):
-        if command == None:
-            commandData = [bot.commandNotFound, ["message"], {"self":bot}]
-        elif generalCommands:
-            commandData = command[2:]
-        else:
-            mentioned = bool(messageContentLower.split(" ")[0] == "joebot")
-            if mentioned:
-                commandData = bot.mentionedCommands[command.pattern]
-            else:
-                commandData = bot.exclamationCommands[command.pattern]
-
-        kwargs = commandData[2]
-        for arg in commandData[1]:
-            if arg == "message":
-                kwargs[arg] = message
-            elif arg == "messageContentLower":
-                kwargs[arg] = messageContentLower
-            elif arg == "commandContent":
-                kwargs[arg] = messageContentLower[7-(6*int(not mentioned)):]
-            elif arg == "bot":
-                kwargs[arg] = bot
-            elif arg == "typing":
-                try:
-                    await message.channel.trigger_typing()
-                except: pass
-
-        try:
-            await commandData[0](**kwargs)
-        except discord.errors.Forbidden:
-            pass
-        except Exception:
-            print(traceback.format_exc(), flush=True)
-            await message.add_reaction("⚠️")
-
-# Events
-
-@bot.client.event
-async def on_member_join(member):
-    await userJoinLeave(member, True)
-
-@bot.client.event
-async def on_member_remove(member):
-    await userJoinLeave(member, False)
-
-@bot.client.event
-async def on_ready():
-    print("Logged in as {0.user}".format(bot.client), flush=True)
-
-@bot.client.event
-async def on_message(message):
-    try:
-        messageContentLower = message.content.lower()
-        if not testingMode:
-            if hasattr(message.channel, "guild"):
-                if messageContentLower.startswith(message.channel.guild.me.display_name.lower()):
-                    messageContentLower = "joebot" + messageContentLower[len(message.channel.guild.me.display_name):]
-                if message.clean_content.startswith("@JoeBot"):
-                    messageContentLower = "joebot" + message.clean_content[7:].lower()
-                if message.clean_content.startswith("@"+message.channel.guild.me.display_name):
-                    messageContentLower = "joebot" + message.clean_content[len(message.channel.guild.me.display_name)+1:].lower()
-            else:
-                if messageContentLower[0] != "!" and messageContentLower[:6] != "joebot":
-                    messageContentLower = "joebot " + messageContentLower
-        else:
-            if messageContentLower.startswith("joebottest") or messageContentLower.startswith("joebotbeta"):
-                messageContentLower = "joebot" + messageContentLower[10:]
-            else:
-                return
-
-        # mentionedCommands & exclamationCommands
-        if not message.author.bot and (messageContentLower.split(" ")[0] == "joebot" or
-            (messageContentLower[0] == "!")):
-            if messageContentLower.split(" ")[0] == "joebot":
-                messageCommand = messageContentLower[7:]
-                commandList = bot.mentionedCommandsList
-            else:
-                messageCommand = messageContentLower[1:]
-                commandList = bot.exclamationCommandsList
-
-            for command in commandList:
-                if command.match(messageCommand):
-                    await bot.runCommand(message, command, messageContentLower)
-                    break
-            else: # if no command found but joebot mentioned
-                if messageContentLower.split(" ")[0] == "joebot":
-                    message.content = messageContentLower[7:]
-                    await bot.runCommand(message)
-        # generalCommands
-        else:
-            for command in bot.generalCommands:
-                if command[0] == "authorID":
-                    if command[1] == message.author.id:
-                        await bot.runCommand(message, command, messageContentLower, generalCommands=True)
-                if command[0] == "authorDisplayNameRegex":
-                    if command[1].match(message.author.display_name):
-                        await bot.runCommand(message, command, messageContentLower, generalCommands=True)
-    except IndexError: pass
-    except discord.errors.Forbidden: pass
-    except AttributeError as e:
-        if str(e) != "'DMChannel' object has no attribute 'guild'":
-            print(traceback.format_exc(), flush=True)
-    except Exception:
-        print(traceback.format_exc(), flush=True)
-
-# Start
-
-print("Starting JoeBot with Python Version " + sys.version[:5] + " and Discord Version " + discord.__version__, flush=True)
-eventLoop = asyncio.get_event_loop()
-for task in bot.startTasks:
-    if isinstance(task, list):
-        eventLoop.create_task(task[0](bot))
-    else:
-        eventLoop.create_task(task)
-bot.client.run(token, reconnect=True)
-
-# Close
-
-print("Closing", flush=True)
-loop = asyncio.new_event_loop()
-loop.run_until_complete(asyncio.wait(bot.closeTasks))
-loop.close()
+if __name__ == "__main__":
+    Bot().run()
