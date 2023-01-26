@@ -6,21 +6,23 @@ __license__ = "GPL"
 
 from discord.ext import commands
 
-class About(commands.Cog):
+from scripts.utils import BaseCog
+
+class About(BaseCog):
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
         self.prefixCommands = {
             "ping": self.pingPrefix
         }
 
-    pingBase = lambda self: f"Pong! {int(self.bot.latency * 1000)}ms"
+    ping = lambda self: f"Pong! {int(self.bot.latency * 1000)}ms"
 
-    @commands.slash_command(description="Ping!")
-    async def ping(self, ctx):
-        await ctx.respond(self.pingBase(), ephemeral=True)
+    @commands.slash_command(name="ping", description="Ping!")
+    async def pingSlash(self, ctx):
+        await ctx.respond(self.ping(), ephemeral=True)
 
     async def pingPrefix(self, message):
-        await message.channel.send(self.pingBase())
+        await message.reply(self.ping(), mention_author=False)
 
 
 def setup(bot):

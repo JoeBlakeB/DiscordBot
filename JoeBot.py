@@ -41,18 +41,16 @@ class Bot(discord.Bot):
         if message.author == self.user:
             return
         msg = message.content.lower().strip()
-        if msg.startswith("!"):
-            return await self.runPrefixCommand(msg[1:].strip(), message)
-        elif hasattr(message.guild, "me"):
-            for prefix in (
-                message.guild.me.display_name.lower(),
-                self.user.display_name.lower(),
-                "<@!" + str(self.user.id) + ">",
-                "<@" + str(self.user.id) + ">",
-            ):
-                if msg.startswith(prefix):
-                    return await self.runPrefixCommand(msg[len(prefix):].strip(), message)
-        else:
+        for prefix in ((
+            self.user.display_name.lower(),
+            "<@!" + str(self.user.id) + ">",
+            "<@" + str(self.user.id) + ">") + 
+            ((message.guild.me.display_name.lower(), "!"
+                ) if hasattr(message.guild, "me") else ("!",))
+        ):
+            if msg.startswith(prefix):
+                return await self.runPrefixCommand(msg[len(prefix):].strip(), message)
+        if not hasattr(message.guild, "me"):
             return await self.runPrefixCommand(msg, message)
     
     async def runPrefixCommand(self, msg, message):
