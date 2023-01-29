@@ -38,14 +38,17 @@ class Bot(discord.Bot):
         print(f"Logged in as {self.user}", flush=True)
     
     async def on_message(self, message):
-        if message.author == self.user:
+        if message.author == self.user or message.author.bot:
             return
+        if message.guild is not None and not self.config[message.guild.id, "messageCommandsEnabled"]:
+            return
+
         msg = message.content.lower().strip()
         for prefix in ((
             self.user.display_name.lower(),
             "<@!" + str(self.user.id) + ">",
             "<@" + str(self.user.id) + ">") + 
-            ((message.guild.me.display_name.lower(), "!"
+            ((message.guild.me.display_name.lower(), self.config[message.guild.id, "prefix"]
                 ) if hasattr(message.guild, "me") else ("!",))
         ):
             if msg.startswith(prefix):

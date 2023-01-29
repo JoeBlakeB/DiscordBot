@@ -20,38 +20,73 @@ class Config(BaseCog):
     @commands.slash_command(name="config", description="Configure JoeBot", 
         default_member_permissions=discord.Permissions(manage_guild=True))
     async def configSlash(self, ctx):
-        view = CommandsSettingsView()
-        await ctx.respond(embed=await view.newEmbed(), view=view, ephemeral=True)
+        view = CommandsSettingsView(self.bot.config[ctx.guild.id])
+        await ctx.respond(embed=view.embed, view=view, ephemeral=True)
 
     async def configPrefix(self, message):
         if message.guild is None:
             return await message.reply("This command can only be used in a server", mention_author=False)
         if not message.author.guild_permissions.manage_guild:
             return await message.add_reaction("🚫")
-        view = CommandsSettingsView()
-        await message.author.send(embed=await view.newEmbed(), view=view)
+        view = CommandsSettingsView(self.bot.config[message.guild.id])
+        await message.author.send(embed=view.embed, view=view)
+
 
 class CommandsSettingsView(View):
-    async def newEmbed(self):
-        embed = discord.Embed(
+    def __init__(self, serverConfig, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.serverConfig = serverConfig
+
+        self.embed = discord.Embed(
             title="Commands Settings",
-            description="Configure JoeBot",
             color=Config.randomColor()
         )
-        return embed
 
-    @discord.ui.button(label="Change Prefix", style=discord.ButtonStyle.primary, emoji="❗")
-    async def button_callback(self, button, interaction):
-        await interaction.response.send_modal(self.SetPrefixModal())
+        if serverConfig["messageCommandsEnabled"]:
+            self.embed.add_field(
+                name="Message Commands",
+                value="```diff\n++  Enabled  ++\n```",
+                inline=True
+            )
+            self.embed.add_field(
+                name="Prefix",
+                value="```\n " + serverConfig["prefix"] + " \n```",
+                inline=True
+            )
+        else:
+            self.embed.add_field(
+                name="Message Commands",
+                value="```diff\n--  Disabled  --\n```",
+                inline=False
+            )
+            self.children[0].label = "Enable Message Commands"
+            del self.children[1]
+
+    @discord.ui.button(label="Disable Message Commands", style=discord.ButtonStyle.primary)
+    async def toggleMessageCommands(self, button, interaction):
+        self.serverConfig["messageCommandsEnabled"] ^= True
+        view = CommandsSettingsView(self.serverConfig)
+        await interaction.response.edit_message(embed=view.embed, view=view)
+
+    @discord.ui.button(label="Change Prefix", style=discord.ButtonStyle.primary, row=1)
+    async def changePrefix(self, button, interaction):
+        await interaction.response.send_modal(self.SetPrefixModal(self.serverConfig))
 
     class SetPrefixModal(Modal):
-        def __init__(self, *args, **kwargs) -> None:
+        def __init__(self, serverConfig, *args, **kwargs):
             super().__init__(title="Change Prefix", *args, **kwargs)
-
+            self.serverConfig = serverConfig
             self.add_item(discord.ui.InputText(label="New Prefix", placeholder="!", max_length=1, required=False))
 
         async def callback(self, interaction):
-            await interaction.response.edit_message(embed=await CommandsSettingsView.newEmbed(), view=CommandsSettingsView())
+            if self.children[0].value in (" ", "", None):
+                prefix = "!"
+            else:
+                prefix = self.children[0].value
+            self.serverConfig["prefix"] = prefix
+            view = CommandsSettingsView(self.serverConfig)
+            await interaction.response.edit_message(embed=view.embed, view=view)
 
 
 def setup(bot):
