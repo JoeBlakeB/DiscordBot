@@ -55,9 +55,11 @@ class Config:
     def __setitem__(self, key, value):
         """Set a config value for a server and save it to the config file.
         
-        Arguments:
-        key -- The path to the config value to set [serverID] or [serverID, key]
-        value -- The value to set
+        Parameters:
+            key (string or int (serverID) or tuple (serverID, key))
+                The path to the config value to set
+            value (any)
+                The value to set the config value to
         """
         if type(value) == ServerConfig:
             value = value.config

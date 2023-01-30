@@ -5,6 +5,8 @@ __credits__ = ["JoeBlakeB"]
 __license__ = "GPL"
 
 import discord
+import subprocess
+import time
 import warnings
 
 from scripts.config import Config
@@ -12,7 +14,11 @@ from scripts.secrets import Secrets
 
 class Bot(discord.Bot):
     botName = "JoeBot"
+    ownerID = 365154655313068032
     prefixCommands = {}
+    configMenu = []
+    configMenuOptions = []
+    configMenuViews = {}
 
     def __init__(self):
         self.config = Config()
@@ -21,12 +27,27 @@ class Bot(discord.Bot):
         intents.message_content = True
         super().__init__(intents=intents)
         extensions = self.load_extensions("cogs")
+        self.version = subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode("utf-8").strip()
+        self.startTime = int(time.time())
+
         for extension in extensions:
             if discord.errors.ExtensionFailed == type(extensions[extension]):
                 warnings.warn(f"Extension {extension} failed to load:\n {extensions[extension]}")
+
         for cog in self.cogs:
             if hasattr(self.cogs[cog], "prefixCommands"):
                 self.prefixCommands.update(self.cogs[cog].prefixCommands)
+            if hasattr(self.cogs[cog], "configMenu"):
+                self.configMenu += self.cogs[cog].configMenu
+
+        self.configMenu.sort(key=lambda x: str(x.priority) + x.label)
+        for selectOption in self.configMenu:
+            self.configMenuOptions.append(discord.SelectOption(
+                label=selectOption.label,
+                value=selectOption.value,
+                emoji=selectOption.emoji,
+                description=selectOption.description))
+            self.configMenuViews[selectOption.value] = selectOption
     
     def run(self):
         token = self.secrets.get("discord")

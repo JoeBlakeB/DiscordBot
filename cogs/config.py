@@ -6,9 +6,8 @@ __license__ = "GPL"
 
 import discord
 from discord.ext import commands
-from discord.ui import View, Modal
 
-from scripts.utils import BaseCog
+from scripts.utils import BaseCog, BaseSettingsView
 
 class Config(BaseCog):
     def __init__(self, bot):
@@ -16,11 +15,15 @@ class Config(BaseCog):
         self.prefixCommands = {
             "config": self.configPrefix,
         }
+        self.configMenu = [
+            StatusSettingsView,
+            CommandsSettingsView
+        ]
         
     @commands.slash_command(name="config", description="Configure JoeBot", 
         default_member_permissions=discord.Permissions(manage_guild=True))
     async def configSlash(self, ctx):
-        view = CommandsSettingsView(self.bot.config[ctx.guild.id])
+        view = StatusSettingsView(ctx.author, self.bot, self.bot.config[ctx.guild.id])
         await ctx.respond(embed=view.embed, view=view, ephemeral=True)
 
     async def configPrefix(self, message):
@@ -28,22 +31,56 @@ class Config(BaseCog):
             return await message.reply("This command can only be used in a server", mention_author=False)
         if not message.author.guild_permissions.manage_guild:
             return await message.add_reaction("🚫")
-        view = CommandsSettingsView(self.bot.config[message.guild.id])
+        view = StatusSettingsView(message.author, self.bot, self.bot.config[message.guild.id])
         await message.author.send(embed=view.embed, view=view)
 
 
-class CommandsSettingsView(View):
-    def __init__(self, serverConfig, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class StatusSettingsView(BaseSettingsView):
+    priority = 0
+    label = "Status"
+    value = "status"
+    emoji = "🤖"
+    description = "View JoeBot's status"
 
-        self.serverConfig = serverConfig
+    def __init__(self, author, *args, **kwargs):
+        super().__init__(author, *args, **kwargs)
+
+        self.embed = discord.Embed(
+            title="JoeBot Settings",
+            description="Change the settings for JoeBot.",
+            color=BaseCog.randomColor(),
+            fields=[
+                discord.EmbedField(name="Ping", value=f"{int(self.bot.latency * 1000)}ms", inline=True),
+                discord.EmbedField(name="Developer", value=f"<@{self.bot.ownerID}> [GitHub](https://github.com/JoeBlakeB/DiscordBot)", inline=True),
+                discord.EmbedField(name="Uptime", value=f"<t:{self.bot.startTime}:R>", inline=True),
+                discord.EmbedField(name="Version", value=f"{self.bot.version}", inline=True),
+                discord.EmbedField(name="Servers", value=f"{len(self.bot.guilds)}", inline=True),
+                discord.EmbedField(name="Commands", value=f"{len(self.bot.commands)}", inline=True)
+            ]
+        )
+
+        self.embed.set_thumbnail(url=self.bot.user.avatar.url)
+
+
+class CommandsSettingsView(BaseSettingsView):
+    priority = 1
+    label = "Commands"
+    value = "commands"
+    emoji = "❗"
+    description = "Change the settings for using commands"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.embed = discord.Embed(
             title="Commands Settings",
+            description="Change the settings for using JoeBot's commands.",
             color=Config.randomColor()
         )
 
-        if serverConfig["messageCommandsEnabled"]:
+        self.embed.set_thumbnail(url=self.bot.user.avatar.url)
+
+        if self.serverConfig["messageCommandsEnabled"]:
             self.embed.add_field(
                 name="Message Commands",
                 value="```diff\n++  Enabled  ++\n```",
@@ -51,7 +88,7 @@ class CommandsSettingsView(View):
             )
             self.embed.add_field(
                 name="Prefix",
-                value="```\n " + serverConfig["prefix"] + " \n```",
+                value="```\n " + self.serverConfig["prefix"] + " \n```",
                 inline=True
             )
         else:
@@ -63,20 +100,20 @@ class CommandsSettingsView(View):
             self.children[0].label = "Enable Message Commands"
             del self.children[1]
 
-    @discord.ui.button(label="Disable Message Commands", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Disable Message Commands", style=discord.ButtonStyle.primary, row=1)
     async def toggleMessageCommands(self, button, interaction):
         self.serverConfig["messageCommandsEnabled"] ^= True
-        view = CommandsSettingsView(self.serverConfig)
+        view = CommandsSettingsView(self.author, self.bot, self.serverConfig)
         await interaction.response.edit_message(embed=view.embed, view=view)
 
     @discord.ui.button(label="Change Prefix", style=discord.ButtonStyle.primary, row=1)
     async def changePrefix(self, button, interaction):
-        await interaction.response.send_modal(self.SetPrefixModal(self.serverConfig))
+        await interaction.response.send_modal(self.SetPrefixModal(self.author, self.bot, self.serverConfig))
 
-    class SetPrefixModal(Modal):
-        def __init__(self, serverConfig, *args, **kwargs):
-            super().__init__(title="Change Prefix", *args, **kwargs)
-            self.serverConfig = serverConfig
+    class SetPrefixModal(discord.ui.Modal):
+        def __init__(self, *args):
+            super().__init__(title="Change Prefix")
+            self.args = args
             self.add_item(discord.ui.InputText(label="New Prefix", placeholder="!", max_length=1, required=False))
 
         async def callback(self, interaction):
@@ -84,8 +121,8 @@ class CommandsSettingsView(View):
                 prefix = "!"
             else:
                 prefix = self.children[0].value
-            self.serverConfig["prefix"] = prefix
-            view = CommandsSettingsView(self.serverConfig)
+            self.args[2]["prefix"] = prefix
+            view = CommandsSettingsView(*self.args)
             await interaction.response.edit_message(embed=view.embed, view=view)
 
 
