@@ -9,6 +9,7 @@ import os
 import sys
 
 class Config:
+    filename = "servers.json"
     data = {}
     defaults = {
         "messageCommandsEnabled": True,
@@ -25,8 +26,10 @@ class Config:
             self.dir = "config/"
         os.makedirs(self.dir, exist_ok=True)
 
+        self.filepath = os.path.join(self.dir, self.filename)
+        
         try:
-            with open(os.path.join(self.dir, "config.json")) as f:
+            with open(self.filepath) as f:
                 self.data = json.load(f)
         except FileNotFoundError:
             pass
@@ -71,9 +74,24 @@ class Config:
                 self.data[key[0]] = {}
             self.data[key[0]][key[1]] = value
         
-        with open(os.path.join(self.dir, "config.json"), "w") as f:
+        with open(os.path.join(self.dir, self.filename), "w") as f:
             json.dump(self.data, f, indent=4)
 
+
+class ConfigCustomDefaults(Config):
+    def __init__(self, defaults={}, filename="config.json"):
+        """Create a new config object with custom defaults.
+        
+        Parameters:
+            defaults (dict) (optional: {})
+                The default config values
+            filename (string) (optional: "config.json")
+                The name of the config file
+        """
+        self.defaults = defaults
+        self.filename = filename
+        super().__init__()
+    
 
 class ServerConfig:
     allConfig = None

@@ -6,7 +6,9 @@ __license__ = "GPL"
 
 import discord
 from discord.ext import commands
+import sys
 
+from scripts.config import ConfigCustomDefaults
 from scripts.utils import BaseCog, BaseSettingsView
 
 class Config(BaseCog):
@@ -45,21 +47,122 @@ class StatusSettingsView(BaseSettingsView):
     def __init__(self, author, *args, **kwargs):
         super().__init__(author, *args, **kwargs)
 
+        self.createEmbed()
+
+        if self.bot.ownerID == author.id:
+            self.ownerConfig()
+
+    def createEmbed(self):
+        """Create an embed with the basic bot info"""
         self.embed = discord.Embed(
             title="JoeBot Settings",
-            description="Change the settings for JoeBot.",
+            description="Select an option from the dropdown menu to change the settings for JoeBot.",
             color=BaseCog.randomColor(),
             fields=[
                 discord.EmbedField(name="Ping", value=f"{int(self.bot.latency * 1000)}ms", inline=True),
-                discord.EmbedField(name="Developer", value=f"<@{self.bot.ownerID}> [GitHub](https://github.com/JoeBlakeB/DiscordBot)", inline=True),
+                discord.EmbedField(name="Servers", value=len(self.bot.guilds), inline=True),
+                discord.EmbedField(name="Commands", value=len(self.bot.commands), inline=True),
+                discord.EmbedField(name="Version", value=self.bot.version, inline=True),
                 discord.EmbedField(name="Uptime", value=f"<t:{self.bot.startTime}:R>", inline=True),
-                discord.EmbedField(name="Version", value=f"{self.bot.version}", inline=True),
-                discord.EmbedField(name="Servers", value=f"{len(self.bot.guilds)}", inline=True),
-                discord.EmbedField(name="Commands", value=f"{len(self.bot.commands)}", inline=True)
+                discord.EmbedField(name="Developer", value=f"<@{self.bot.ownerID}> [GitHub](https://github.com/JoeBlakeB/DiscordBot)", inline=True),
             ]
         )
 
         self.embed.set_thumbnail(url=self.bot.user.avatar.url)
+
+    def ownerConfig(self):
+        """Add the owner config options to the embed
+        
+        TODO: update, and restart buttons"""
+        self.botConfig = ConfigCustomDefaults({
+            "status": "online",
+            "activity": None
+        })
+
+        status = self.getStatusString()
+        if status:
+            self.embed.add_field(name="Status", value=status, inline=False)
+
+        self.embed.add_field(
+            name="Python Version", value=sys.version.split(" ")[0], inline=True)
+        self.embed.add_field(
+            name="Pycord Version", value=discord.__version__, inline=True)
+
+        availableVersion = "TODO"# self.bot.getVersion()
+
+        if availableVersion != self.bot.version:
+            self.embed.add_field(name="JoeBot Version Available", value=availableVersion, inline=False)
+
+        statusSelect = discord.ui.Select(row=1,
+            placeholder={
+                "online": "🟢 Online",
+                "idle": "🟡 Idle",
+                "dnd": "🔴 Do Not Disturb",
+                "invisible": "⚪ Invisible"
+            }[self.botConfig["presence", "status"]],
+            options=[
+                discord.SelectOption(label="Online", value="online", emoji="🟢"),
+                discord.SelectOption(label="Idle", value="idle", emoji="🟡"),
+                discord.SelectOption(label="Do Not Disturb", value="dnd", emoji="🔴"),
+                discord.SelectOption(label="Invisible", value="invisible", emoji="⚪")
+            ]
+        )
+        statusSelect.callback = self.statusSelectCallback
+        self.add_item(statusSelect)
+
+        activityButton = discord.ui.Button(label="Set Activity", style=discord.ButtonStyle.primary, row=2)
+        activityButton.callback = self.setActivityCallback
+        self.add_item(activityButton)
+
+    def getStatusString(self):
+        activity = self.botConfig["presence", "activity"]
+        if activity:
+            activityType = {
+                0: "Playing",
+                1: "Streaming",
+                2: "Listening to",
+                3: "Watching",
+                5: "Competing in"
+            }[activity[0]]
+            if activity[2]:
+                return f" {activityType} [{activity[1]}]({activity[2]})"
+            else:
+                return f" {activityType} {activity[1]}"
+
+    async def statusSelectCallback(self, interaction):
+        self.botConfig["presence", "status"] = interaction.data["values"][0]
+        await self.bot.changePresence()
+        view = StatusSettingsView(interaction.user, self.bot, self.serverConfig)
+        await interaction.response.edit_message(embed=view.embed, view=view)
+
+    async def setActivityCallback(self, interaction):
+        await interaction.response.send_modal(self.SetActivityModal(self.author, self.bot, self.serverConfig))
+    
+    class SetActivityModal(discord.ui.Modal):
+        def __init__(self, *args):
+            super().__init__(title="Set Prefix")
+            self.args = args
+            self.add_item(discord.ui.InputText(label="Type", value="Playing",
+                placeholder="Playing, Streaming, Watching, Listening, Competing"))
+            self.add_item(discord.ui.InputText(label="Name", required=False,
+                placeholder="The name of the activity"))
+            self.add_item(discord.ui.InputText(label="URL (For Streaming only)", required=False,
+                placeholder="The URL of the stream"))
+
+        async def callback(self, interaction):
+            if self.children[1].value:
+                try:
+                    activityType = {"P": 0, "S": 1, "L": 2, "W": 3, "C": 5}[self.children[0].value[0].upper()]
+                except KeyError:
+                    activityType = 0
+                activityName = self.children[1].value
+                activityURL = self.children[2].value if activityType == 1 else None
+                ConfigCustomDefaults()["presence", "activity"] = [activityType, activityName, activityURL]
+            else:
+                ConfigCustomDefaults()["presence", "activity"] = None
+            await self.args[1].changePresence()
+            view = StatusSettingsView(*self.args)
+            await interaction.response.edit_message(embed=view.embed, view=view)
 
 
 class CommandsSettingsView(BaseSettingsView):

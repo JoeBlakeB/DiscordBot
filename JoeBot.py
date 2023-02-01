@@ -9,8 +9,8 @@ import subprocess
 import time
 import warnings
 
-from scripts.config import Config
-from scripts.secrets import Secrets
+import scripts.config
+import scripts.secrets
 
 class Bot(discord.Bot):
     botName = "JoeBot"
@@ -21,13 +21,13 @@ class Bot(discord.Bot):
     configMenuViews = {}
 
     def __init__(self):
-        self.config = Config()
-        self.secrets = Secrets(self.config)
+        self.config = scripts.config.Config()
+        self.secrets = scripts.secrets.Secrets(self.config)
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
-        extensions = self.load_extensions("cogs")
-        self.version = subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode("utf-8").strip()
+        extensions = self.load_extensions("cogs", recursive=True, store=True)
+        self.version = self.getVersion()
         self.startTime = int(time.time())
 
         for extension in extensions:
@@ -57,11 +57,25 @@ class Bot(discord.Bot):
 
     async def on_ready(self):
         print(f"Logged in as {self.user}", flush=True)
+        await self.changePresence()
+
+    async def changePresence(self):
+        """Sets the bot's presence according to the config file."""
+        botConfig = scripts.config.ConfigCustomDefaults(
+            {"status": "online", "activity": None})
+        activity = botConfig["presence", "activity"]
+        if activity:
+            activity = discord.Activity(
+                type=discord.ActivityType(activity[0]),
+                name=activity[1],
+                url=activity[2])
+        await self.change_presence(activity=activity,
+            status=discord.Status(botConfig["presence", "status"]))
     
     async def on_message(self, message):
         if message.author == self.user or message.author.bot:
             return
-        if message.guild is not None and not self.config[message.guild.id, "messageCommandsEnabled"]:
+        if message.guild and not self.config[message.guild.id, "messageCommandsEnabled"]:
             return
 
         msg = message.content.lower().strip()
@@ -81,6 +95,10 @@ class Bot(discord.Bot):
         for command in self.prefixCommands:
             if msg.startswith(command):
                 return await self.prefixCommands[command](message)
+
+    @staticmethod
+    def getVersion():
+        return subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode("utf-8").strip()
 
 if __name__ == "__main__":
     Bot().run()
