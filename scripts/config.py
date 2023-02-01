@@ -104,8 +104,10 @@ class ServerConfig:
         self.config = config
 
     def __getitem__(self, key):
+        """Get a config value."""
         return self.config[key]
 
     def __setitem__(self, key, value):
+        """Set a config value for a server and save it to the config file."""
         self.config[key] = value
         self.allConfig[self.serverID, key] = value

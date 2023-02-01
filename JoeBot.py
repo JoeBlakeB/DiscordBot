@@ -23,6 +23,11 @@ class Bot(discord.Bot):
     def __init__(self):
         self.config = scripts.config.Config()
         self.secrets = scripts.secrets.Secrets(self.config)
+        self.botConfig = scripts.config.ConfigCustomDefaults({
+            "status": "online",
+            "activity": None
+        })
+
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
@@ -61,16 +66,14 @@ class Bot(discord.Bot):
 
     async def changePresence(self):
         """Sets the bot's presence according to the config file."""
-        botConfig = scripts.config.ConfigCustomDefaults(
-            {"status": "online", "activity": None})
-        activity = botConfig["presence", "activity"]
+        activity = self.botConfig["presence", "activity"]
         if activity:
             activity = discord.Activity(
                 type=discord.ActivityType(activity[0]),
                 name=activity[1],
                 url=activity[2])
         await self.change_presence(activity=activity,
-            status=discord.Status(botConfig["presence", "status"]))
+            status=discord.Status(self.botConfig["presence", "status"]))
     
     async def on_message(self, message):
         if message.author == self.user or message.author.bot:

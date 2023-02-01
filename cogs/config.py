@@ -8,7 +8,6 @@ import discord
 from discord.ext import commands
 import sys
 
-from scripts.config import ConfigCustomDefaults
 from scripts.utils import BaseCog, BaseSettingsView
 
 class Config(BaseCog):
@@ -21,7 +20,7 @@ class Config(BaseCog):
             StatusSettingsView,
             CommandsSettingsView
         ]
-        
+
     @commands.slash_command(name="config", description="Configure JoeBot", 
         default_member_permissions=discord.Permissions(manage_guild=True))
     async def configSlash(self, ctx):
@@ -74,10 +73,6 @@ class StatusSettingsView(BaseSettingsView):
         """Add the owner config options to the embed
         
         TODO: update, and restart buttons"""
-        self.botConfig = ConfigCustomDefaults({
-            "status": "online",
-            "activity": None
-        })
 
         status = self.getStatusString()
         if status:
@@ -99,7 +94,7 @@ class StatusSettingsView(BaseSettingsView):
                 "idle": "🟡 Idle",
                 "dnd": "🔴 Do Not Disturb",
                 "invisible": "⚪ Invisible"
-            }[self.botConfig["presence", "status"]],
+            }[self.bot.botConfig["presence", "status"]],
             options=[
                 discord.SelectOption(label="Online", value="online", emoji="🟢"),
                 discord.SelectOption(label="Idle", value="idle", emoji="🟡"),
@@ -115,7 +110,7 @@ class StatusSettingsView(BaseSettingsView):
         self.add_item(activityButton)
 
     def getStatusString(self):
-        activity = self.botConfig["presence", "activity"]
+        activity = self.bot.botConfig["presence", "activity"]
         if activity:
             activityType = {
                 0: "Playing",
@@ -130,7 +125,7 @@ class StatusSettingsView(BaseSettingsView):
                 return f" {activityType} {activity[1]}"
 
     async def statusSelectCallback(self, interaction):
-        self.botConfig["presence", "status"] = interaction.data["values"][0]
+        self.bot.botConfig["presence", "status"] = interaction.data["values"][0]
         await self.bot.changePresence()
         view = StatusSettingsView(interaction.user, self.bot, self.serverConfig)
         await interaction.response.edit_message(embed=view.embed, view=view)
@@ -142,6 +137,7 @@ class StatusSettingsView(BaseSettingsView):
         def __init__(self, *args):
             super().__init__(title="Set Prefix")
             self.args = args
+            self.bot = args[1]
             self.add_item(discord.ui.InputText(label="Type", value="Playing",
                 placeholder="Playing, Streaming, Watching, Listening, Competing"))
             self.add_item(discord.ui.InputText(label="Name", required=False,
@@ -157,10 +153,10 @@ class StatusSettingsView(BaseSettingsView):
                     activityType = 0
                 activityName = self.children[1].value
                 activityURL = self.children[2].value if activityType == 1 else None
-                ConfigCustomDefaults()["presence", "activity"] = [activityType, activityName, activityURL]
+                self.bot.botConfig["presence", "activity"] = [activityType, activityName, activityURL]
             else:
-                ConfigCustomDefaults()["presence", "activity"] = None
-            await self.args[1].changePresence()
+                self.bot.botConfig["presence", "activity"] = None
+            await self.bot.changePresence()
             view = StatusSettingsView(*self.args)
             await interaction.response.edit_message(embed=view.embed, view=view)
 
