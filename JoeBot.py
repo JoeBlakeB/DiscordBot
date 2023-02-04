@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2023, Joe Baker (JoeBlakeB)"
 __credits__ = ["JoeBlakeB"]
 __license__ = "GPL"
 
+import asyncio
 import discord
 import subprocess
 import time
@@ -19,6 +20,7 @@ class Bot(discord.Bot):
     configMenu = []
     configMenuOptions = []
     configMenuViews = {}
+    activeViews = []
 
     def __init__(self):
         self.config = scripts.config.Config()
@@ -58,7 +60,18 @@ class Bot(discord.Bot):
         token = self.secrets.get("discord")
         if not token:
             raise ValueError("Please add your discord token to secrets.json")
-        super().run(token)
+        super().run(token, reconnect=True)
+    
+    async def close(self):
+        """Timeout view menus before closing the bot."""        
+        for view in tuple(self.activeViews):
+            await view.on_timeout()
+
+        for task in asyncio.all_tasks():
+            if "coro=<View.__timeout_task_impl()" in str(task):
+                task.cancel()
+
+        await super().close()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}", flush=True)

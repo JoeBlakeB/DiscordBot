@@ -38,7 +38,8 @@ class BaseSettingsView(discord.ui.View):
             serverConfig (ServerConfig)
                 The config object for the server
         """
-        super().__init__(*args, **kwargs, timeout=300, disable_on_timeout=True)
+        bot.activeViews.append(self)
+        super().__init__(*args, **kwargs, timeout=300)
 
         self.author = author
         self.bot = bot
@@ -63,12 +64,14 @@ class BaseSettingsView(discord.ui.View):
 
     async def selectCallback(self, interaction):
         """Callback for when a setting is selected"""
+        self.bot.activeViews.remove(self)
         view = self.bot.configMenuViews[interaction.data["values"][0]](self.author, self.bot, self.serverConfig, message=self.message)
         await interaction.response.edit_message(embed=view.embed, view=view)
         self.stop()
 
     async def on_timeout(self):
         """Disable the menu when it times out"""
+        self.bot.activeViews.remove(self)
         self.disable_all_items()
         self.embed.set_footer(text="Menu timed out, run the command again to continue")
         await self.message.edit(view=self, embed=self.embed)
