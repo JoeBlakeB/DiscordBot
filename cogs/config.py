@@ -46,12 +46,20 @@ class StatusSettingsView(BaseSettingsView):
     def __init__(self, author, *args, **kwargs):
         super().__init__(author, *args, **kwargs)
 
-        self.createEmbed()
+        self.owner = self.bot.ownerID == author.id
 
-        if self.bot.ownerID == author.id:
-            self.ownerConfig()
+        if self.owner:
+            self.createOwnerButtons()
+        
+        self.create()
 
-    def createEmbed(self):
+    def create(self):
+        self.baseEmbed()
+        if self.owner:
+            self.ownerEmbed()
+            self.children[1].placeholder = self.getStatusString()
+
+    def baseEmbed(self):
         """Create an embed with the basic bot info"""
         self.embed = discord.Embed(
             title="JoeBot Settings",
@@ -69,12 +77,12 @@ class StatusSettingsView(BaseSettingsView):
 
         self.embed.set_thumbnail(url=self.bot.user.avatar.url)
 
-    def ownerConfig(self):
-        """Add the owner config options to the embed
+    def ownerEmbed(self):
+        """Add the owner options to the embed
         
         TODO: update, and restart buttons"""
 
-        status = self.getStatusString()
+        status = self.getActivityString()
         if status:
             self.embed.add_field(name="Status", value=status, inline=False)
 
@@ -88,13 +96,9 @@ class StatusSettingsView(BaseSettingsView):
         if availableVersion != self.bot.version:
             self.embed.add_field(name="JoeBot Version Available", value=availableVersion, inline=False)
 
+    def createOwnerButtons(self):
+        """Add the owner buttons to the view"""
         statusSelect = discord.ui.Select(row=1,
-            placeholder={
-                "online": "🟢 Online",
-                "idle": "🟡 Idle",
-                "dnd": "🔴 Do Not Disturb",
-                "invisible": "⚪ Invisible"
-            }[self.bot.botConfig["presence", "status"]],
             options=[
                 discord.SelectOption(label="Online", value="online", emoji="🟢"),
                 discord.SelectOption(label="Idle", value="idle", emoji="🟡"),
@@ -110,6 +114,16 @@ class StatusSettingsView(BaseSettingsView):
         self.add_item(activityButton)
 
     def getStatusString(self):
+        """Get the online status of the bot"""
+        return {
+            "online": "🟢 Online",
+            "idle": "🟡 Idle",
+            "dnd": "🔴 Do Not Disturb",
+            "invisible": "⚪ Invisible"
+        }[self.bot.botConfig["presence", "status"]]
+
+    def getActivityString(self):
+        """Get the activity of the bot"""
         activity = self.bot.botConfig["presence", "activity"]
         if activity:
             activityType = {
@@ -127,17 +141,15 @@ class StatusSettingsView(BaseSettingsView):
     async def statusSelectCallback(self, interaction):
         self.bot.botConfig["presence", "status"] = interaction.data["values"][0]
         await self.bot.changePresence()
-        view = StatusSettingsView(interaction.user, self.bot, self.serverConfig)
-        await interaction.response.edit_message(embed=view.embed, view=view)
+        await self.refreshEmbed(interaction, StatusSettingsView)
 
     async def setActivityCallback(self, interaction):
-        await interaction.response.send_modal(self.SetActivityModal(self.author, self.bot, self.serverConfig))
+        await interaction.response.send_modal(self.SetActivityModal(self))
     
     class SetActivityModal(discord.ui.Modal):
-        def __init__(self, *args):
+        def __init__(self, view):
             super().__init__(title="Set Prefix")
-            self.args = args
-            self.bot = args[1]
+            self.view = view
             self.add_item(discord.ui.InputText(label="Type", value="Playing",
                 placeholder="Playing, Streaming, Watching, Listening, Competing"))
             self.add_item(discord.ui.InputText(label="Name", required=False,
@@ -153,12 +165,11 @@ class StatusSettingsView(BaseSettingsView):
                     activityType = 0
                 activityName = self.children[1].value
                 activityURL = self.children[2].value if activityType == 1 else None
-                self.bot.botConfig["presence", "activity"] = [activityType, activityName, activityURL]
+                self.view.bot.botConfig["presence", "activity"] = [activityType, activityName, activityURL]
             else:
-                self.bot.botConfig["presence", "activity"] = None
-            await self.bot.changePresence()
-            view = StatusSettingsView(*self.args)
-            await interaction.response.edit_message(embed=view.embed, view=view)
+                self.view.bot.botConfig["presence", "activity"] = None
+            await self.view.bot.changePresence()
+            await self.view.refreshEmbed(interaction, StatusSettingsView)
 
 
 class CommandsSettingsView(BaseSettingsView):
@@ -171,6 +182,9 @@ class CommandsSettingsView(BaseSettingsView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.create()
+
+    def create(self):
         self.embed = discord.Embed(
             title="Commands Settings",
             description="Change the settings for using JoeBot's commands.",
@@ -190,29 +204,42 @@ class CommandsSettingsView(BaseSettingsView):
                 value="```\n " + self.serverConfig["prefix"] + " \n```",
                 inline=True
             )
+            # probably a better way to do this, 
+            # but the array order changes so I can't just use the index
+            for child in self.children:
+                if type(child) == discord.ui.Select:
+                    continue
+                if child.label == "Change Prefix":
+                    child.disabled = False
+                if child.label == "Enable Message Commands":
+                    child.label = "Disable Message Commands"
         else:
             self.embed.add_field(
                 name="Message Commands",
                 value="```diff\n--  Disabled  --\n```",
                 inline=False
             )
-            self.children[0].label = "Enable Message Commands"
-            del self.children[1]
+            for child in self.children:
+                if type(child) == discord.ui.Select:
+                    continue
+                if child.label == "Change Prefix":
+                    child.disabled = True
+                if child.label == "Disable Message Commands":
+                    child.label = "Enable Message Commands"
 
     @discord.ui.button(label="Disable Message Commands", style=discord.ButtonStyle.primary, row=1)
     async def toggleMessageCommands(self, button, interaction):
         self.serverConfig["messageCommandsEnabled"] ^= True
-        view = CommandsSettingsView(self.author, self.bot, self.serverConfig)
-        await interaction.response.edit_message(embed=view.embed, view=view)
+        await self.refreshEmbed(interaction, CommandsSettingsView)
 
     @discord.ui.button(label="Change Prefix", style=discord.ButtonStyle.primary, row=1)
     async def changePrefix(self, button, interaction):
-        await interaction.response.send_modal(self.SetPrefixModal(self.author, self.bot, self.serverConfig))
+        await interaction.response.send_modal(self.SetPrefixModal(self))
 
     class SetPrefixModal(discord.ui.Modal):
-        def __init__(self, *args):
+        def __init__(self, view):
             super().__init__(title="Change Prefix")
-            self.args = args
+            self.view = view
             self.add_item(discord.ui.InputText(label="New Prefix", placeholder="!", max_length=1, required=False))
 
         async def callback(self, interaction):
@@ -220,9 +247,8 @@ class CommandsSettingsView(BaseSettingsView):
                 prefix = "!"
             else:
                 prefix = self.children[0].value
-            self.args[2]["prefix"] = prefix
-            view = CommandsSettingsView(*self.args)
-            await interaction.response.edit_message(embed=view.embed, view=view)
+            self.view.serverConfig["prefix"] = prefix
+            await self.view.refreshEmbed(interaction, CommandsSettingsView)
 
 
 def setup(bot):

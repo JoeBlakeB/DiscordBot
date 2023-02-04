@@ -27,7 +27,7 @@ class BaseSettingsView(discord.ui.View):
     emoji = None
     description = None
 
-    def __init__(self, author, bot, serverConfig, *args, **kwargs):
+    def __init__(self, author, bot, serverConfig, message=None, *args, **kwargs):
         """A menu for changing part of the bots settings in a server
         
         Parameters:
@@ -38,20 +38,49 @@ class BaseSettingsView(discord.ui.View):
             serverConfig (ServerConfig)
                 The config object for the server
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs, timeout=300, disable_on_timeout=True)
 
         self.author = author
         self.bot = bot
         self.serverConfig = serverConfig
 
+        if message:
+            self.message = message
+
         select = discord.ui.Select(row=0,
             placeholder="Select a setting to view or change",
             options=bot.configMenuOptions
         )
-        select.callback = self.select_callback
+        select.callback = self.selectCallback
         self.add_item(select)
 
-    async def select_callback(self, interaction):
+    def create(self):
+        """Create an embed about the config and customize the buttons"""
+        self.embed = discord.Embed(
+            title="JoeBot Config",
+            color=BaseCog.randomColor()
+        )
+
+    async def selectCallback(self, interaction):
         """Callback for when a setting is selected"""
-        view = self.bot.configMenuViews[interaction.data["values"][0]](self.author, self.bot, self.serverConfig)
+        view = self.bot.configMenuViews[interaction.data["values"][0]](self.author, self.bot, self.serverConfig, message=self.message)
         await interaction.response.edit_message(embed=view.embed, view=view)
+        self.stop()
+
+    async def on_timeout(self):
+        """Disable the menu when it times out"""
+        self.disable_all_items()
+        self.embed.set_footer(text="Menu timed out, run the command again to continue")
+        await self.message.edit(view=self, embed=self.embed)
+
+    async def refreshEmbed(self, interaction, View, *args, **kwargs):
+        """Refresh the menu with a new view
+        
+        Parameters:
+            interaction (discord.Interaction)
+                The interaction that triggered the refresh
+            View (BaseSettingsView)
+                The view to refresh to
+        """
+        self.create()
+        await interaction.response.edit_message(view=self, embed=self.embed)
