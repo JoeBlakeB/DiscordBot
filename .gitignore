@@ -1,3 +1,5 @@
 __pycache__/
 config/
 .directory
+venv/
+.vscode

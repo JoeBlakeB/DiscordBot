@@ -6,9 +6,43 @@ __license__ = "GPL"
 
 import discord
 from discord.ext import commands
+import os
+import subprocess
 import sys
+import time
 
 from scripts.utils import BaseCog, BaseSettingsView
+
+def getVersion():
+    """Gets the commit count from git"""
+    try:
+        return subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode("utf-8").strip()
+    except:
+        return "Unknown"
+
+def getRequirements():
+    """Gets the amount of requirements from the requirements.txt file and how many are installed"""
+    try:
+        requirements = subprocess.check_output(["pip", "freeze"]).decode("utf-8")
+        requirements = {x.split("==")[0]: x.split("==")[1] for x in requirements.split("\n") if x != ""}
+    except:
+        return "Unknown"
+    
+    total = 0
+    installed = 0
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../requirements.txt"), "r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line == "":
+                continue
+            total += 1
+            for comparison in [">=", "<=", "=="]:
+                if comparison in line:
+                    package, version = line.split(comparison)
+                    if package in requirements and requirements[package] == version:
+                        installed += 1
+                    break
+    return f"{installed}/{total}"
 
 class Config(BaseCog):
     def __init__(self, bot):
@@ -42,6 +76,9 @@ class StatusSettingsView(BaseSettingsView):
     value = "status"
     emoji = "🤖"
     description = "View JoeBot's status"
+    version = getVersion()
+    requirements = None
+    startTime = int(time.time())
 
     def __init__(self, author, *args, **kwargs):
         super().__init__(author, *args, **kwargs)
@@ -69,8 +106,8 @@ class StatusSettingsView(BaseSettingsView):
                 discord.EmbedField(name="Ping", value=f"{int(self.bot.latency * 1000)}ms", inline=True),
                 discord.EmbedField(name="Servers", value=len(self.bot.guilds), inline=True),
                 discord.EmbedField(name="Commands", value=len(self.bot.commands), inline=True),
-                discord.EmbedField(name="Version", value=self.bot.version, inline=True),
-                discord.EmbedField(name="Uptime", value=f"<t:{self.bot.startTime}:R>", inline=True),
+                discord.EmbedField(name="Version", value=self.version, inline=True),
+                discord.EmbedField(name="Uptime", value=f"<t:{self.startTime}:R>", inline=True),
                 discord.EmbedField(name="Developer", value=f"<@{self.bot.ownerID}> [GitHub](https://github.com/JoeBlakeB/DiscordBot)", inline=True),
             ]
         )
@@ -78,9 +115,7 @@ class StatusSettingsView(BaseSettingsView):
         self.embed.set_thumbnail(url=self.bot.user.avatar.url)
 
     def ownerEmbed(self):
-        """Add the owner options to the embed
-        
-        TODO: update, and restart buttons"""
+        """Add the owner options to the embed"""
 
         status = self.getActivityString()
         if status:
@@ -88,13 +123,13 @@ class StatusSettingsView(BaseSettingsView):
 
         self.embed.add_field(
             name="Python Version", value=sys.version.split(" ")[0], inline=True)
+
         self.embed.add_field(
-            name="Pycord Version", value=discord.__version__, inline=True)
+            name="Requirements", value=getRequirements(), inline=True)
 
-        availableVersion = "TODO"# self.bot.getVersion()
-
-        if availableVersion != self.bot.version:
-            self.embed.add_field(name="JoeBot Version Available", value=availableVersion, inline=False)
+        newVersion = getVersion()
+        if newVersion != self.version:
+            self.embed.add_field(name="JoeBot Version Available", value=newVersion, inline=False)
 
     def createOwnerButtons(self):
         """Add the owner buttons to the view"""
@@ -112,6 +147,53 @@ class StatusSettingsView(BaseSettingsView):
         activityButton = discord.ui.Button(label="Set Activity", style=discord.ButtonStyle.primary, row=2)
         activityButton.callback = self.setActivityCallback
         self.add_item(activityButton)
+
+        updateBotButton = discord.ui.Button(label=f"Update {self.bot.botName}", style=discord.ButtonStyle.secondary)
+        updateBotButton.callback = self.updateBotCallback
+        self.add_item(updateBotButton)
+
+        updateRequirementsButton = discord.ui.Button(label="Update Requirements", style=discord.ButtonStyle.secondary)
+        updateRequirementsButton.callback = self.updateRequirementsCallback
+        self.add_item(updateRequirementsButton)
+
+        shutdownButton = discord.ui.Button(label=f"Shutdown {self.bot.botName}", style=discord.ButtonStyle.danger)
+        shutdownButton.callback = self.shutdownCallback
+        self.add_item(shutdownButton)
+
+    async def updateBotCallback(self, interaction):
+        """Git pull the latest version of the bot"""
+        self.embed.add_field(name=f"Updating {self.bot.botName}", value=f"Updating {self.bot.botName}...", inline=False)
+        await interaction.response.edit_message(embed=self.embed)
+
+        try:
+            subprocess.run(["git", "pull"], check=True, capture_output=True)
+        except FileNotFoundError:
+            return await interaction.followup.send("Cannot update, git is not installed.", ephemeral=True)
+        except subprocess.CalledProcessError as e:
+            return await interaction.followup.send("Failed to update:\n```\n" + e.stderr.decode() + "\n```", ephemeral=True)
+
+        self.create()
+        await self.message.edit(view=self, embed=self.embed)
+
+    async def updateRequirementsCallback(self, interaction):
+        """Update the requirements of the bot"""
+        self.embed.add_field(name="Updating Requirements", value="Updating Requirements...", inline=False)
+        await interaction.response.edit_message(embed=self.embed)
+
+        try:
+            subprocess.run(["pip", "install", "-r", "requirements.txt"], check=True, capture_output=True)
+        except FileNotFoundError:
+            return await interaction.followup.send("Cannot update, pip not found.", ephemeral=True)
+        except subprocess.CalledProcessError as e:
+            return await interaction.followup.send("Failed to update:\n```\n" + e.stderr.decode() + "\n```", ephemeral=True)
+
+        self.create()
+        await self.message.edit(view=self, embed=self.embed)
+
+    async def shutdownCallback(self, interaction):
+        """Shutdown the bot"""
+        await interaction.response.send_message("Shutting down...", ephemeral=True)
+        await self.bot.close()
 
     def getStatusString(self):
         """Get the online status of the bot"""

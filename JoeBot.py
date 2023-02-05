@@ -6,8 +6,6 @@ __license__ = "GPL"
 
 import asyncio
 import discord
-import subprocess
-import time
 import warnings
 
 import scripts.config
@@ -34,8 +32,6 @@ class Bot(discord.Bot):
         intents.message_content = True
         super().__init__(intents=intents)
         extensions = self.load_extensions("cogs", recursive=True, store=True)
-        self.version = self.getVersion()
-        self.startTime = int(time.time())
 
         for extension in extensions:
             if discord.errors.ExtensionFailed == type(extensions[extension]):
@@ -61,9 +57,9 @@ class Bot(discord.Bot):
         if not token:
             raise ValueError("Please add your discord token to secrets.json")
         super().run(token, reconnect=True)
-    
+
     async def close(self):
-        """Timeout view menus before closing the bot."""        
+        """Timeout view menus before closing the bot."""
         for view in tuple(self.activeViews):
             await view.on_timeout()
 
@@ -111,10 +107,6 @@ class Bot(discord.Bot):
         for command in self.prefixCommands:
             if msg.startswith(command):
                 return await self.prefixCommands[command](message)
-
-    @staticmethod
-    def getVersion():
-        return subprocess.check_output(["git", "rev-list", "--count", "HEAD"]).decode("utf-8").strip()
 
 if __name__ == "__main__":
     Bot().run()

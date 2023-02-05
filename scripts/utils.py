@@ -73,17 +73,15 @@ class BaseSettingsView(discord.ui.View):
         """Disable the menu when it times out"""
         self.bot.activeViews.remove(self)
         self.disable_all_items()
-        self.embed.set_footer(text="Menu timed out, run the command again to continue")
+        self.embed.set_footer(text="Menu timed out, run the command again to continue.")
         await self.message.edit(view=self, embed=self.embed)
 
-    async def refreshEmbed(self, interaction, View, *args, **kwargs):
+    async def refreshEmbed(self, interaction):
         """Refresh the menu with a new view
         
         Parameters:
             interaction (discord.Interaction)
                 The interaction that triggered the refresh
-            View (BaseSettingsView)
-                The view to refresh to
         """
         self.create()
         await interaction.response.edit_message(view=self, embed=self.embed)
