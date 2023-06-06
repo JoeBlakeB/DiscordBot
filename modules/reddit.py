@@ -33,6 +33,9 @@ class reddit(baseClass.baseClass):
         "\n\nTo use JoeBot in DMs, remove the prefix, for example r/<SUBREDDIT> instead of !r/<SUBREDDIT>"),
         "thumbnail":"https://cdn.discordapp.com/emojis/690344425356001320.png"}
     async def reddit(self, message):
+        if await self.redditIsKillingAPI(self, message):
+            return
+
         embed = discord.Embed()
         embed.title = reddit.redditHelp["title"]
         embed.description = reddit.redditHelp["description"]
@@ -42,6 +45,37 @@ class reddit(baseClass.baseClass):
     sortMethods = [{"hot":False, "new":False, "rising":False, "top":True, "controversial":True},
         {"relevant": False, "hot": False, "new":False, "top":True}]
     sortTimes = ["all", "year", "month", "week", "day", "hour"]
+
+    timesOfLastWarningSent = {}
+
+    async def redditIsKillingAPI(self, message):
+        afterProtestStart = datetime.datetime.now() > datetime.datetime(2023, 6, 12)
+        if afterProtestStart or time.time() - self.timesOfLastWarningSent.get(message.channel.id, 0) > 300:
+            self.timesOfLastWarningSent[message.channel.id] = time.time()
+
+            aboutPart = "Reddit is changing the terms for its API, this will affect everything that uses the API, including JoeBot, and could kill third party apps."
+
+            nsfwPart = "\n\nThe API changes will also block NSFW content through the API." if self.isNSFW(message) else ""
+
+            joebotPart = ("\n\nTo join the protest, JoeBot will not allow access to reddit " +
+                          ("until the APIs terms are made more reasonable." 
+                           if afterProtestStart else "starting the 12th of June."))
+
+            await message.channel.send(aboutPart + nsfwPart + joebotPart)
+
+            for img in (
+                "https://cdn.discordapp.com/attachments/796434329831604288/1115671288556552303/01.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/1115671301974147143/02.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/1115671316880687104/03.png",
+                "https://cdn.discordapp.com/attachments/796434329831604288/1115671324573052968/04.png"
+            ):
+                await message.channel.send(img)
+
+            if not afterProtestStart:
+                await message.channel.trigger_typing()
+                await asyncio.sleep(3)
+
+        return afterProtestStart
 
     async def about(self, message, subredditName, isSubreddit):
         try:
@@ -181,6 +215,9 @@ class reddit(baseClass.baseClass):
         return reason
 
     async def subreddit(self, message, commandContent, isSubreddit):
+        if await self.redditIsKillingAPI(self, message):
+            return
+
         # Get what user wants from message
         subredditName = commandContent.split()[0][2:]
         restOfMessage = commandContent.split()[1:]
@@ -322,6 +359,8 @@ class reddit(baseClass.baseClass):
         return alreadyGotAPost, None, nsfwBlock
 
     async def url(self, message, messageContentLower, exclamation):
+        if await self.redditIsKillingAPI(self, message):
+            return
         try:
             try:
                 await message.channel.trigger_typing()
